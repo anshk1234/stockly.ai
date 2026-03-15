@@ -21,3 +21,7 @@ Deployed app link- https://live-stock-market-dashboard.streamlit.app/
 <img width="1366" height="768" alt="Screenshot (636)" src="https://github.com/user-attachments/assets/b02a759e-cc97-42be-b1f8-1a82a84f7caf" />
 
 hope you star the project ✨...
+
+## Star History ⭐
+
+[![Star History Chart](https://api.star-history.com/svg?repos=anshk1234/Matrix_app&type=date&legend=top-left)](https://www.star-history.com/#anshk1234/Matrix_app&type=date&legend=top-left)
