@@ -2,7 +2,7 @@
 
 A feature-rich **Streamlit** web app for real-time stock market data, interactive visualizations, and portfolio tracking — all in one place.
 
-🚀 **[Live Demo](https://stocklyai.streamlit.app/)**
+🚀 **[Live Demo](https://stockly-ai.streamlit.app/)**
 
 ---
 
