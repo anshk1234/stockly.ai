@@ -853,7 +853,7 @@ st.sidebar.markdown("""
 - 📊 **Data Source**: [Yahoo Finance](https://finance.yahoo.com)  
 - 🖼️ **Logos**: Wikimedia Commons  
 - ⚙️ **Tech Stack**: Streamlit + Plotly  
-- 🧠 **Source Code**: PRIVATE  
+- 🧠 **Source Code**: [GITHUB](https://github.com/anshk1234/stockly.ai) 
 - 🌐 **see other projects**: [streamlit.io/ansh kunwar](https://share.streamlit.io/user/anshk1234)  
 - 📧 **Contact**: anshkunwar3009@gmail.com     
 -  This App is Licensed Under **Apache License 2.0**
