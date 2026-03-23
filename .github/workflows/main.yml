@@ -1,20 +1,12 @@
-name: Production Deployment
+name: Manual Deployment
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
-    environment:
-      name: production
-      url: https://stockly-ai.streamlit.app/
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Deployment marker
-        run: echo "App deployed to Streamlit"
+      - name: Dummy step
+        run: echo "Workflow works"
