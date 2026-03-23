@@ -2,7 +2,7 @@
 
 A feature-rich **Streamlit** web app for real-time stock market data, interactive visualizations, portfolio tracking, and **AI-powered insights** — all in one place.
 
-🚀 **[Live Demo](https://stockly-ai.streamlit.app/)**
+🚀 **[Deployed App](https://stockly-ai.streamlit.app/)**
 
 <img width="1536" height="1024" alt="ChatGPT Image Mar 23, 2026, 04_00_27 PM" src="https://github.com/user-attachments/assets/805567c6-6869-419e-889d-5323ccca8cbe" />
 <img width="1536" height="1024" alt="ChatGPT Image Mar 23, 2026, 04_02_47 PM" src="https://github.com/user-attachments/assets/07e16061-2a4d-42ee-862c-26ac7c7197c6" />
