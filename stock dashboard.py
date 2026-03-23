@@ -36,7 +36,7 @@ if st.session_state.show_intro:
     st.session_state.show_intro = False
 
 #app title
-st.header('''📈 Live Stock Dashboard''')
+st.header('''📈 Stockly AI ''')
 
 
 
