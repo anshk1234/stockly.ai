@@ -11,6 +11,8 @@ import io
 from streamlit_echarts import st_echarts
 import plotly.graph_objects as go
 import streamlit.components.v1 as components
+from ai_addon import render_ai_tab
+import requests 
 
 # Page config
 st.set_page_config(page_title="📈 Live Stock Dashboard", layout="wide")
@@ -35,6 +37,8 @@ if st.session_state.show_intro:
 
 #app title
 st.header('''📈 Live Stock Dashboard''')
+
+
 
 # Fetch live data
 @st.cache_data(ttl=3600)   # cache for 1 hour
@@ -267,7 +271,7 @@ def next_saturday(start_date=None):
 
 
 # Tabs layout
-tab1, tab2, tab3, tab4, tab5, tab6= st.tabs(["📈 Live Prices", "📉 Peer Trends", "📊 Metrics",  "📰 News", "⚡ portfolio", "⚙️ Settings & Info"])
+tab1, tab2, tab3, tab4, tab5, tab6, tab_ai= st.tabs(["📈 Live Prices", "📉 Peer Trends", "📊 Metrics",  "📰 News", "⚡ portfolio", "⚙️ Settings & Info", "🤖 AI Insights"])
 
 with tab1:
     st.subheader("🔍 Stock Explorer")
@@ -777,6 +781,15 @@ with tab6:
             - 🌐 Visit my GitHub: [github](https://github.com/anshk1234)         
             """)
 
+
+with tab_ai:
+    render_ai_tab(
+        selected_ticker, details, history,
+        df, total_invested, total_value,
+        fetch_stock_details_fn=fetch_stock_details,
+        fetch_news_fn=fetch_news
+    )
+
 #sidebar
 symbols = {
     "Apple": "AAPL",
@@ -851,4 +864,3 @@ st.sidebar.markdown("<br><center>© 2025 Live Stock Dashboard</center>", unsafe_
     
 # ---- Footer ----
 st.markdown("<p style='text-align:center; color:white;'>© 2025 Live Stock Dashboard | Powered by Yahoo Finance</p>", unsafe_allow_html=True)
-
