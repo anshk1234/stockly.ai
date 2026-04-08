@@ -924,3 +924,4 @@ with tab_portfolio:
         file_name="portfolio_enriched.csv",
         mime="text/csv",
     )
+#end
