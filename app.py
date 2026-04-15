@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 
 # ── Page Config ───────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Stockly.AI",
+    page_title="Stockly.ai",
     page_icon="📈",
     layout="centered",
     initial_sidebar_state="expanded",
