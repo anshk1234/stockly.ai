@@ -179,7 +179,7 @@ CLOUD_MODELS = {
 }
 
 TEMPERATURE = 0.5
-MAX_TOKENS  = 1000
+MAX_TOKENS  = 1200
 
 SYSTEM_PROMPT = """You are Stockly.AI — an expert AI stock market assistant.
 You help users with:
