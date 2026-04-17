@@ -591,9 +591,17 @@ if user_input:
     detected_ticker = None
 
     # Check if ticker in our popular list or try yfinance
-    popular_tickers = ["AAPL","MSFT","TSLA","NVDA","AMZN","META","GOOGL","JPM",
-                       "NFLX","AMD","INTC","BABA","UBER","LYFT","SNAP","TWTR",
-                       "SPY","QQQ","BTC","ETH","GME","AMC","COIN","PLTR","RBLX"]
+    popular_tickers = ["AAPL","ABBV","ACN","ADBE","ADP","AMD","AMGN","AMT","AMZN","APD",
+                        "AVGO","AXP","BA","BK","BKNG","BMY","BRK.B","BSX","C","CAT","CI",
+                        "CL","CMCSA","COST","CRM","CSCO","CVX","DE","DHR","DIS","DUK",
+                        "ELV","EOG","EQR","FDX","GD","GE","GILD","GOOG","GOOGL","HD",
+                        "HON","HUM","IBM","ICE","INTC","ISRG","JNJ","JPM","KO","LIN",
+                        "LLY","LMT","LOW","MA","MCD","MDLZ","META","MMC","MO","MRK",
+                        "MSFT","NEE","NFLX","NKE","NOW","NVDA","ORCL","PEP","PFE","PG",
+                        "PLD","PM","PSA","REGN","RTX","SBUX","SCHW","SLB","SO","SPGI",
+                        "T","TJX","TMO","TSLA","TXN","UNH","UNP","UPS","V","VZ","WFC",
+                        "WM","WMT","XOM"]
+    
     for cand in candidates:
         if cand in popular_tickers:
             detected_ticker = cand
