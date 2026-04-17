@@ -69,7 +69,7 @@ Ensure you have the following installed:
 
 1.  **Clone the Repository**:
     ```bash
-    git clone https://github.com/stockly-ai/stockly.ai.git
+    git clone https://github.com/anshk1234/stockly.ai.git
     cd stockly.ai
     ```
 
