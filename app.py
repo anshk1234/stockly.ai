@@ -179,20 +179,18 @@ CLOUD_MODELS = {
 }
 
 TEMPERATURE = 0.5
-MAX_TOKENS  = 1200
+MAX_TOKENS  = 1000
 
-SYSTEM_PROMPT = """You are Stockly.AI — an expert AI stock market assistant.
-You help users with:
-- Real-time stock prices, company info, and fundamental analysis
-- Technical analysis and chart interpretation
-- Stock predictions (with clear disclaimers)
-- Latest financial news and market sentiment
-- Portfolio analysis, comparison, and strategy advice
+SYSTEM_PROMPT = """You are Stockly.AI — a sharp, no-fluff stock market assistant.
 
-When a user asks about a stock, provide structured information including price, key metrics, and analysis.
-Always mention that predictions are speculative and not financial advice.
-Be concise, data-driven, and actionable. Format your responses cleanly.
-Use $ for prices and % for percentages.
+Rules:
+- Be ultra-concise. Max 3-5 short sentences or bullet points per response.
+- Lead with the key number or verdict immediately.
+- No filler phrases like "Great question!" or lengthy disclaimers.
+- For predictions, one line: direction + reason + one-word risk level.
+- Use $ for prices, % for percentages, K/M/B/T for large numbers.
+- Never repeat data the user already knows.
+- End every prediction with: ⚠️ Not financial advice.
 """
 
 # ── API Key from secrets ──────────────────────────────────────────────────────
@@ -391,22 +389,37 @@ with st.sidebar:
             st.session_state.current_ticker = "AAPL"
             st.rerun()
 
-    st.sidebar.markdown("<br><center style='color:#444;font-size:11px;'>© 2026 Stockly.AI</center>", unsafe_allow_html=True)
+    st.sidebar.markdown("<br><center style='color:#FFFFF;font-size:16px;'>© 2026 Stockly.ai</center>", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # MAIN AREA — Header
 # ══════════════════════════════════════════════════════════════════════════════
 st.markdown("""
-<div style="margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid #2a2a2a;">
-    <div style="font-family:'Inter',sans-serif;font-size:22px;font-weight:700;color:#ececec;">
+<div style="
+    margin-top:30px;
+    margin-bottom:24px;
+    padding-bottom:16px;
+    border-bottom:1px solid #2a2a2a;
+">
+    <div style="
+        font-family:'Inter',sans-serif;
+        font-size:22px;
+        font-weight:700;
+        color:#ececec;
+        line-height:1.4;
+    ">
         📈 Stockly.AI
     </div>
-    <div style="font-family:'Inter',sans-serif;font-size:13px;color:#555;margin-top:2px;">
+    <div style="
+        font-family:'Inter',sans-serif;
+        font-size:13px;
+        color:#555;
+        margin-top:4px;
+    ">
         Ask about stocks, get predictions, news & analysis
     </div>
 </div>
 """, unsafe_allow_html=True)
-
 # ══════════════════════════════════════════════════════════════════════════════
 # STOCK CHART & METRICS PANEL
 # ══════════════════════════════════════════════════════════════════════════════
@@ -625,6 +638,4 @@ if user_input:
     # Auto-show chart for the detected ticker
     if detected_ticker:
         st.session_state.show_chart = True
-
-    st.rerun()  
-
+        st.rerun()
