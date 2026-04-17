@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 
 # ── Page Config ───────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Stockly.ai",
+    page_title="Stockly.AI",
     page_icon="📈",
     layout="centered",
     initial_sidebar_state="expanded",
@@ -397,8 +397,8 @@ with st.sidebar:
 st.markdown("""
 <div style="
     margin-top:30px;
-    margin-bottom:24px;
-    padding-bottom:16px;
+    margin-bottom:5px;
+    padding-bottom:10px;
     border-bottom:1px solid #2a2a2a;
 ">
     <div style="
