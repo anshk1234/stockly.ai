@@ -200,7 +200,7 @@ OLLAMA_API_KEY = st.secrets["OLLAMA_API_KEY"]
 for k, v in {
     "chat_history": [],
     "current_ticker": "AAPL",
-    "show_chart": False,
+    "show_chart": True,
 }.items():
     if k not in st.session_state:
         st.session_state[k] = v
