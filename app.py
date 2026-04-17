@@ -173,20 +173,13 @@ hr { border-color: #2a2a2a !important; }
 
 # ── Ollama Cloud Models ────────────────────────────────────────────────────────
 CLOUD_MODELS = {
-    "DeepSeek V3":          "deepseek-v3.1:671b",
-    "Qwen3-Coder 480B":     "qwen3-coder:480b",
-    "Kimi K2 Thinking":     "kimi-k2-thinking",
-    "Gemini 3 Flash":       "gemini-3-flash-preview",
     "GPT-OSS 120B":         "gpt-oss:120b",
-    "Qwen3 Next 80B":       "qwen3-next:80b",
-    "GLM-5":                "glm-5",
-    "Devstral 2 123B":      "devstral-2:123b",
-    "MiniMax M2.7":         "minimax-m2.7:cloud",
-    "Cogito 2.1 671B":      "cogito-2.1:671b",
+    
+    
 }
 
 TEMPERATURE = 0.5
-MAX_TOKENS  = 2000
+MAX_TOKENS  = 1000
 
 SYSTEM_PROMPT = """You are Stockly.AI — an expert AI stock market assistant.
 You help users with:
@@ -202,16 +195,20 @@ Be concise, data-driven, and actionable. Format your responses cleanly.
 Use $ for prices and % for percentages.
 """
 
+# ── API Key from secrets ──────────────────────────────────────────────────────
+OLLAMA_API_KEY = st.secrets["OLLAMA_API_KEY"]
+
 # ── Session State ─────────────────────────────────────────────────────────────
 for k, v in {
-    "auth": False, "api_key": "", "chat_history": [],
-    "current_ticker": "AAPL", "show_chart": False,
+    "chat_history": [],
+    "current_ticker": "AAPL",
+    "show_chart": False,
 }.items():
     if k not in st.session_state:
         st.session_state[k] = v
 
 # ── yfinance helpers ──────────────────────────────────────────────────────────
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=18000)
 def get_stock_info(ticker: str):
     try:
         t = yf.Ticker(ticker)
@@ -219,7 +216,7 @@ def get_stock_info(ticker: str):
     except Exception:
         return {}
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=18000)
 def get_history(ticker: str, period: str = "3mo"):
     try:
         t = yf.Ticker(ticker)
@@ -227,7 +224,7 @@ def get_history(ticker: str, period: str = "3mo"):
     except Exception:
         return pd.DataFrame()
 
-@st.cache_data(ttl=900)
+@st.cache_data(ttl=18000)
 def get_news(ticker: str):
     try:
         return yf.Ticker(ticker).news[:6]
@@ -329,66 +326,6 @@ Current stock data for {info.get('longName', ticker)} ({ticker}):
 """
 
 # ══════════════════════════════════════════════════════════════════════════════
-# LOGIN
-# ══════════════════════════════════════════════════════════════════════════════
-if not st.session_state.auth:
-    _, mid, _ = st.columns([1, 1.4, 1])
-    with mid:
-        st.markdown("""
-        <div style="text-align:center; padding:60px 0 32px;">
-            <div style="font-size:48px;margin-bottom:12px;">📈</div>
-            <div style="font-family:'Inter',sans-serif;font-size:28px;font-weight:700;
-                        color:#ececec;letter-spacing:-0.5px;margin-bottom:6px;">
-                Stockly.AI
-            </div>
-            <div style="font-family:'Inter',sans-serif;font-size:14px;color:#666;margin-bottom:32px;">
-                Your AI-powered stock market assistant
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown('<p style="font-family:\'Inter\',sans-serif;font-size:14px;color:#aaa;margin-bottom:6px;">Ollama API Key</p>', unsafe_allow_html=True)
-        key_in = st.text_input("k", type="password",
-                               placeholder="ollama_xxxxxxxxxxxxxxxxxxxx",
-                               label_visibility="collapsed")
-        st.markdown("""
-        <div style="text-align:center;margin:8px 0 20px;">
-            <p style="font-family:'Inter',sans-serif;font-size:13px;color:#555;margin:0;">
-                Get your key at
-                <a href="https://ollama.com/settings/keys" target="_blank"
-                   style="color:#7a7a7a;text-decoration:underline;">
-                    ollama.com → Settings → API Keys
-                </a>
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown("""
-        <style>
-        .login-btn .stButton > button {
-            background-color: #d4d4d4 !important;
-            border: none !important;
-            border-radius: 8px !important;
-            color: #111 !important;
-            font-weight: 600 !important;
-            font-size: 14px !important;
-            padding: 10px 22px !important;
-        }
-        .login-btn .stButton > button:hover { background-color: #ececec !important; }
-        </style>
-        """, unsafe_allow_html=True)
-        st.markdown('<div class="login-btn">', unsafe_allow_html=True)
-        if st.button("Continue →", use_container_width=True):
-            if key_in and len(key_in) > 6:
-                st.session_state.api_key = key_in
-                st.session_state.auth    = True
-                st.rerun()
-            else:
-                st.error("Please enter a valid API key.")
-        st.markdown('</div>', unsafe_allow_html=True)
-    st.stop()
-
-# ══════════════════════════════════════════════════════════════════════════════
 # SIDEBAR
 # ══════════════════════════════════════════════════════════════════════════════
 with st.sidebar:
@@ -424,7 +361,7 @@ with st.sidebar:
     period_label = st.selectbox("p", list(period_map.keys()), index=2, label_visibility="collapsed")
     period       = period_map[period_label]
 
-    if st.button("📊 Show Chart", use_container_width=True):
+    if st.button("📊 Show Chart", width='stretch'):
         st.session_state.current_ticker = ticker_input
         st.session_state.show_chart     = True
 
@@ -434,7 +371,7 @@ with st.sidebar:
     st.markdown('<p style="font-family:\'Inter\',sans-serif;font-size:11px;font-weight:500;color:#555;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Popular Stocks</p>', unsafe_allow_html=True)
     popular = ["AAPL", "TSLA", "NVDA", "MSFT", "AMZN", "META", "GOOGL", "JPM"]
     for tk in popular:
-        if st.button(tk, use_container_width=True, key=f"pop_{tk}"):
+        if st.button(tk, width='stretch', key=f"pop_{tk}"):
             st.session_state.current_ticker = tk
             st.session_state.show_chart     = True
             st.rerun()
@@ -443,13 +380,15 @@ with st.sidebar:
 
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("🗑 Clear", use_container_width=True):
+        if st.button("🗑 Clear", width='stretch'):
             st.session_state.chat_history = []
             st.session_state.show_chart   = False
             st.rerun()
     with col2:
-        if st.button("↩ Sign out", use_container_width=True):
-            st.session_state.clear()
+        if st.button("↩ Reset", width='stretch'):
+            st.session_state.chat_history = []
+            st.session_state.show_chart   = False
+            st.session_state.current_ticker = "AAPL"
             st.rerun()
 
     st.sidebar.markdown("<br><center style='color:#444;font-size:11px;'>© 2026 Stockly.AI</center>", unsafe_allow_html=True)
@@ -550,7 +489,7 @@ if st.session_state.show_chart and st.session_state.current_ticker:
                 showlegend=False,
                 title=dict(text=f"{ticker} — {period_label}", font=dict(color="#666", size=13)),
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
 
         # News
         news = get_news(ticker)
@@ -676,7 +615,7 @@ if user_input:
     with st.chat_message("assistant"):
         reply_box  = st.empty()
         full_reply = ""
-        for token in stream_ollama(st.session_state.api_key, model_id, messages):
+        for token in stream_ollama(OLLAMA_API_KEY, model_id, messages):
             full_reply += token
             reply_box.markdown(full_reply + "▌")
         reply_box.markdown(full_reply)
@@ -686,4 +625,6 @@ if user_input:
     # Auto-show chart for the detected ticker
     if detected_ticker:
         st.session_state.show_chart = True
-        st.rerun()
+
+    st.rerun()  
+
