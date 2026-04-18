@@ -386,7 +386,7 @@ with st.sidebar:
         if st.button("↩ Reset", width='stretch'):
             st.session_state.chat_history = []
             st.session_state.show_chart   = False
-            st.session_state.current_ticker = "AAPL"
+            st.session_state.current_ticker = "TSLA"
             st.rerun()
 
     st.sidebar.markdown("<br><center style='color:#FFFFF;font-size:16px;'>© 2026 Stockly.ai</center>", unsafe_allow_html=True)
