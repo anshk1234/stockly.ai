@@ -4,7 +4,6 @@ import pandas as pd
 import plotly.graph_objects as go
 import requests
 import json
-from datetime import datetime, timedelta
 
 # ── Page Config ───────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -255,7 +254,7 @@ def safe(val, fmt=None, suffix=""):
 def stream_ollama(api_key, model, messages):
     try:
         r = requests.post(
-            "https://ollama.com/api/chat",
+            "https://api.ollama.com/api/chat",
             headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
             json={
                 "model": model,
@@ -389,7 +388,7 @@ with st.sidebar:
             st.session_state.current_ticker = "AAPL"
             st.rerun()
 
-    st.sidebar.markdown("<br><center style='color:#FFFFF;font-size:16px;'>© 2026 Stockly.ai</center>", unsafe_allow_html=True)
+    st.sidebar.markdown("<br><center style='color:#FFFFFF;font-size:16px;'>© 2026 Stockly.ai</center>", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # MAIN AREA — Header
@@ -502,7 +501,7 @@ if st.session_state.show_chart and st.session_state.current_ticker:
                 showlegend=False,
                 title=dict(text=f"{ticker} — {period_label}", font=dict(color="#666", size=13)),
             )
-            st.plotly_chart(fig, width='stretch')
+            st.plotly_chart(fig, use_container_width=True)
 
         # News
         news = get_news(ticker)
