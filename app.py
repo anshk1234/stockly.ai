@@ -4,6 +4,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import requests
 import json
+import html
+import re
 
 # ── Page Config ───────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -193,7 +195,7 @@ Rules:
 """
 
 # ── API Key from secrets ──────────────────────────────────────────────────────
-OLLAMA_API_KEY = st.secrets["OLLAMA_API_KEY"]
+OLLAMA_API_KEY = str(st.secrets.get("OLLAMA_API_KEY", "")).strip()
 
 # ── Session State ─────────────────────────────────────────────────────────────
 for k, v in {
@@ -250,8 +252,21 @@ def safe(val, fmt=None, suffix=""):
     except Exception:
         return "N/A"
 
+def number_or_zero(val):
+    try:
+        return float(val)
+    except (TypeError, ValueError):
+        return 0.0
+
+def normalize_ticker(value):
+    ticker = str(value or "").strip().upper()
+    return ticker if re.fullmatch(r"[A-Z0-9][A-Z0-9.-]{0,9}", ticker) else ""
+
 # ── Ollama streaming API ──────────────────────────────────────────────────────
 def stream_ollama(api_key, model, messages):
+    if not api_key:
+        yield "❌ Ollama API key is not configured. Add OLLAMA_API_KEY to Streamlit secrets."
+        return
     try:
         r = requests.post(
             "https://api.ollama.com/api/chat",
@@ -297,13 +312,14 @@ def build_stock_context(ticker: str) -> str:
     hist = get_history(ticker, "1mo")
     price_change = ""
     if not hist.empty:
-        start = hist["Close"].iloc[0]
-        end   = hist["Close"].iloc[-1]
-        pct   = (end - start) / start * 100
-        price_change = f"1-month return: {pct:+.2f}%"
+        start = number_or_zero(hist["Close"].iloc[0])
+        end = number_or_zero(hist["Close"].iloc[-1])
+        if start:
+            price_change = f"1-month return: {(end - start) / start * 100:+.2f}%"
+    current_price = safe(info.get("currentPrice") or info.get("regularMarketPrice"), "${:.2f}")
     return f"""
 Current stock data for {info.get('longName', ticker)} ({ticker}):
-- Current Price: ${info.get('currentPrice') or info.get('regularMarketPrice', 'N/A')}
+- Current Price: {current_price}
 - Market Cap: {format_large(info.get('marketCap'))}
 - P/E Ratio: {safe(info.get('trailingPE'), '{:.2f}')}
 - EPS (TTM): {safe(info.get('trailingEps'), '${:.2f}')}
@@ -351,7 +367,8 @@ with st.sidebar:
     st.markdown('<p style="font-family:\'Inter\',sans-serif;font-size:11px;font-weight:500;color:#555;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Quick Lookup</p>', unsafe_allow_html=True)
     ticker_input = st.text_input("t", value=st.session_state.current_ticker,
                                  placeholder="e.g. AAPL, TSLA, NVDA",
-                                 label_visibility="collapsed").upper().strip()
+                                 label_visibility="collapsed")
+    ticker_input = normalize_ticker(ticker_input)
 
     period_map = {"1 Week": "5d", "1 Month": "1mo", "3 Months": "3mo",
                   "6 Months": "6mo", "1 Year": "1y", "5 Years": "5y"}
@@ -359,8 +376,11 @@ with st.sidebar:
     period       = period_map[period_label]
 
     if st.button("📊 Show Chart", width='stretch'):
-        st.session_state.current_ticker = ticker_input
-        st.session_state.show_chart     = True
+        if ticker_input:
+            st.session_state.current_ticker = ticker_input
+            st.session_state.show_chart = True
+        else:
+            st.sidebar.error("Enter a valid ticker symbol.")
 
     st.divider()
 
@@ -429,10 +449,9 @@ if st.session_state.show_chart and st.session_state.current_ticker:
 
     if info:
         name  = info.get("longName", ticker)
-        price = info.get("currentPrice") or info.get("regularMarketPrice", 0)
-        chg   = info.get("regularMarketChange", 0) or 0
-        chgp  = info.get("regularMarketChangePercent", 0) or 0
-        delta_color = "green" if chg >= 0 else "red"
+        price = number_or_zero(info.get("currentPrice") or info.get("regularMarketPrice"))
+        chg = number_or_zero(info.get("regularMarketChange"))
+        chgp = number_or_zero(info.get("regularMarketChangePercent"))
 
         # Header
         st.markdown(f"""
@@ -501,7 +520,7 @@ if st.session_state.show_chart and st.session_state.current_ticker:
                 showlegend=False,
                 title=dict(text=f"{ticker} — {period_label}", font=dict(color="#666", size=13)),
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
         # News
         news = get_news(ticker)
@@ -518,6 +537,11 @@ if st.session_state.show_chart and st.session_state.current_ticker:
                     link = click_url.get("url", "")
                 if not link:
                     link = content.get("canonicalUrl", {}).get("url", "#") if isinstance(content.get("canonicalUrl"), dict) else "#"
+                if not isinstance(link, str) or not link.startswith(("http://", "https://")):
+                    link = "#"
+                title = html.escape(str(title))
+                link = html.escape(link, quote=True)
+                pub_time = html.escape(str(pub_time))
 
                 st.markdown(f"""
                 <div style="padding:10px 14px;background:#252525;border:1px solid #2e2e2e;
