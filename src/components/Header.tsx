@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { Monitor, BellRing, Share2, Menu, Sparkles } from "lucide-react";
+import { BellRing, Sparkles } from "lucide-react";
 import { SearchDropdown } from "./SearchDropdown";
 
 interface HeaderProps {
@@ -32,24 +32,10 @@ export function Header({ onSelectSymbol }: HeaderProps) {
         </div>
 
         {/* Col 3 (Right): Action Controls */}
-        <div className="flex items-center justify-end gap-1.5 sm:gap-2 text-[var(--text-muted)] text-[12px] shrink-0">
-          <button className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)] transition-colors font-[var(--weight-medium)] whitespace-nowrap">
-            <Monitor className="w-3.5 h-3.5" />
-            <span>Computer for Finance</span>
-          </button>
-
-          <button className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)] transition-colors font-[var(--weight-medium)] whitespace-nowrap">
+        <div className="flex items-center justify-end text-[var(--text-muted)] text-[12px] shrink-0">
+          <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)] transition-colors font-[var(--weight-medium)] whitespace-nowrap">
             <BellRing className="w-3.5 h-3.5" />
             <span>Price Alert</span>
-          </button>
-
-          <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)] transition-colors font-[var(--weight-medium)] whitespace-nowrap">
-            <Share2 className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Share</span>
-          </button>
-
-          <button className="p-1.5 rounded-lg hover:bg-[var(--bg-card-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
-            <Menu className="w-4 h-4" />
           </button>
         </div>
       </div>

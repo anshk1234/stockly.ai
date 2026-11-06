@@ -135,13 +135,10 @@ export default function StockDetailPage({
           </div>
 
           {/* Right Actions */}
-          <div className="flex items-center justify-end gap-2 text-[12px] shrink-0">
+          <div className="flex items-center justify-end text-[12px] shrink-0">
             <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-[var(--bg-card-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors font-[var(--weight-medium)] whitespace-nowrap">
-              <Share2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Share</span>
-            </button>
-            <button className="p-1.5 rounded-lg hover:bg-[var(--bg-card-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)]">
-              <Menu className="w-4 h-4" />
+              <BellRing className="w-3.5 h-3.5" />
+              <span>Price Alert</span>
             </button>
           </div>
         </div>
