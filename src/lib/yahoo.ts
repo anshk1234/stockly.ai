@@ -1,5 +1,12 @@
 import YahooFinance from "yahoo-finance2";
-import { AssetQuote, NewsItem, MarketSentiment } from "./types";
+import {
+  AssetQuote,
+  DetailedStockQuote,
+  CandlePoint,
+  NewsItem,
+  MarketSentiment,
+  TimeRange,
+} from "./types";
 
 const yf = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
 
@@ -11,9 +18,9 @@ const ASSET_NAMES: Record<string, { name: string; currency: string }> = {
   "^GSPC": { name: "S&P 500", currency: "USD" },
   "^IXIC": { name: "Nasdaq Composite", currency: "USD" },
   "^DJI": { name: "Dow Jones", currency: "USD" },
+  "NVDA": { name: "NVIDIA Corporation", currency: "USD" },
   "MSFT": { name: "Microsoft Corporation", currency: "USD" },
   "AAPL": { name: "Apple Inc.", currency: "USD" },
-  "NVDA": { name: "NVIDIA Corporation", currency: "USD" },
   "GOOGL": { name: "Alphabet Inc.", currency: "USD" },
   "RELIANCE.NS": { name: "Reliance Industries", currency: "INR" },
   "TCS.NS": { name: "Tata Consultancy Services", currency: "INR" },
@@ -32,7 +39,6 @@ async function fetchSparkline(symbol: string): Promise<number[]> {
     });
 
     if (result && result.quotes && result.quotes.length > 0) {
-      // Filter valid numbers and take the last 25-30 data points for a smooth sparkline
       const validCloses = result.quotes
         .map((q) => q.close)
         .filter((c): c is number => typeof c === "number" && !isNaN(c));
@@ -91,6 +97,150 @@ export async function getTopAssets(region: "IN" | "US" = "IN"): Promise<AssetQuo
 }
 
 /**
+ * Retrieve Detailed Stock Quote & Profile Info
+ */
+export async function getStockDetails(symbol: string): Promise<DetailedStockQuote | null> {
+  try {
+    const quote = await yf.quote(symbol);
+    if (!quote) return null;
+
+    let profile: any = {};
+    try {
+      const summary = await yf.quoteSummary(symbol, { modules: ["assetProfile"] });
+      profile = summary?.assetProfile || {};
+    } catch {
+      // Indices or cryptos don't have company assetProfile
+    }
+
+    // Extract CEO from officers if available
+    const ceoOfficer = (profile.companyOfficers || []).find((o: any) =>
+      (o.title || "").toLowerCase().includes("ceo")
+    );
+
+    let ipoDate = "";
+    if (quote.firstTradeDateMilliseconds) {
+      ipoDate = new Date(quote.firstTradeDateMilliseconds).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    }
+
+    const config = ASSET_NAMES[symbol];
+    const name = config?.name || quote.longName || quote.shortName || quote.symbol;
+
+    return {
+      symbol: quote.symbol,
+      name,
+      shortName: quote.shortName,
+      currency: quote.currency || "USD",
+      exchange: quote.fullExchangeName || quote.exchange || "NASDAQ",
+      country: profile.country || (symbol.endsWith(".NS") || symbol.endsWith(".BO") ? "India" : "United States"),
+      price: quote.regularMarketPrice ?? 0,
+      change: quote.regularMarketChange ?? 0,
+      changePercent: quote.regularMarketChangePercent ?? 0,
+      previousClose: quote.regularMarketPreviousClose ?? quote.regularMarketPrice ?? 0,
+      marketState: quote.marketState || "REGULAR",
+
+      marketCap: quote.marketCap,
+      dayLow: quote.regularMarketDayLow,
+      dayHigh: quote.regularMarketDayHigh,
+      fiftyTwoWeekLow: quote.fiftyTwoWeekLow,
+      fiftyTwoWeekHigh: quote.fiftyTwoWeekHigh,
+      trailingPE: quote.trailingPE,
+      forwardPE: quote.forwardPE,
+      eps: quote.epsTrailingTwelveMonths,
+      dividendYield: quote.trailingAnnualDividendYield ?? quote.dividendYield,
+      volume: quote.regularMarketVolume,
+      averageVolume: quote.averageDailyVolume3Month,
+
+      ceo: ceoOfficer?.name?.replace(/Mr\.\s+|Ms\.\s+/g, "").trim(),
+      ipoDate,
+      fullTimeEmployees: profile.fullTimeEmployees,
+      sector: profile.sector,
+      industry: profile.industry,
+      summary: profile.longBusinessSummary,
+      website: profile.website,
+      analystRating: quote.averageAnalystRating,
+    };
+  } catch (error) {
+    console.error(`Error fetching detailed stock for ${symbol}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Retrieve Historical Chart Candlesticks for a specific TimeRange
+ */
+export async function getStockChart(
+  symbol: string,
+  range: TimeRange = "1D"
+): Promise<{ candles: CandlePoint[]; previousClose: number }> {
+  try {
+    let interval: "2m" | "5m" | "15m" | "1h" | "1d" | "1wk" | "1mo" = "5m";
+    let period1: Date;
+    const now = Date.now();
+
+    switch (range) {
+      case "1D":
+        interval = "5m";
+        period1 = new Date(now - 1 * 24 * 60 * 60 * 1000);
+        break;
+      case "5D":
+        interval = "15m";
+        period1 = new Date(now - 5 * 24 * 60 * 60 * 1000);
+        break;
+      case "1M":
+        interval = "1d";
+        period1 = new Date(now - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case "6M":
+        interval = "1d";
+        period1 = new Date(now - 180 * 24 * 60 * 60 * 1000);
+        break;
+      case "YTD":
+        interval = "1d";
+        period1 = new Date(new Date().getFullYear(), 0, 1);
+        break;
+      case "1Y":
+        interval = "1d";
+        period1 = new Date(now - 365 * 24 * 60 * 60 * 1000);
+        break;
+      case "5Y":
+        interval = "1wk";
+        period1 = new Date(now - 5 * 365 * 24 * 60 * 60 * 1000);
+        break;
+      case "MAX":
+      default:
+        interval = "1mo";
+        period1 = new Date(now - 25 * 365 * 24 * 60 * 60 * 1000);
+        break;
+    }
+
+    const result = await yf.chart(symbol, { period1, interval });
+    const quotes = result?.quotes || [];
+    const previousClose = result?.meta?.chartPreviousClose ?? result?.meta?.previousClose ?? 0;
+
+    const candles: CandlePoint[] = quotes
+      .filter((q) => q.close !== null && q.close !== undefined && !isNaN(q.close))
+      .map((q) => ({
+        date: q.date ? new Date(q.date).toISOString() : new Date().toISOString(),
+        timestamp: q.date ? new Date(q.date).getTime() : Date.now(),
+        open: q.open ?? q.close ?? 0,
+        high: q.high ?? q.close ?? 0,
+        low: q.low ?? q.close ?? 0,
+        close: q.close ?? 0,
+        volume: q.volume ?? 0,
+      }));
+
+    return { candles, previousClose };
+  } catch (error) {
+    console.error(`Error fetching chart for ${symbol}:`, error);
+    return { candles: [], previousClose: 0 };
+  }
+}
+
+/**
  * Retrieve Watchlist quotes dynamically
  */
 export async function getWatchlist(symbols: string[] = ["MSFT", "AAPL", "NVDA"]): Promise<AssetQuote[]> {
@@ -136,7 +286,6 @@ export async function getMarketNews(region: "IN" | "US" = "IN"): Promise<NewsIte
     const results = await Promise.all(searchPromises);
     const combinedNews = results.flatMap((r) => r.news || []);
 
-    // Deduplicate by UUID or title
     const uniqueMap = new Map<string, any>();
     for (const item of combinedNews) {
       const key = item.uuid || item.title;
@@ -180,7 +329,6 @@ export async function getMarketStatus(): Promise<MarketSentiment> {
     console.error("Error determining market status:", e);
   }
 
-  // Calculate IST Time
   const now = new Date();
   const istFormatter = new Intl.DateTimeFormat("en-IN", {
     timeZone: "Asia/Kolkata",
@@ -192,7 +340,6 @@ export async function getMarketStatus(): Promise<MarketSentiment> {
     hour12: true,
   });
 
-  // Check if NSE is open (Mon-Fri, 9:15 AM to 3:30 PM IST)
   const istTimeStr = new Intl.DateTimeFormat("en-US", {
     timeZone: "Asia/Kolkata",
     hour: "numeric",
@@ -205,7 +352,7 @@ export async function getMarketStatus(): Promise<MarketSentiment> {
   const [hours, mins] = (time || "0:0").split(":").map(Number);
   const totalMins = hours * 60 + mins;
   const isWeekday = !["Sat", "Sun"].includes(day);
-  const isMarketOpen = isWeekday && totalMins >= 555 && totalMins <= 930; // 9:15 to 15:30
+  const isMarketOpen = isWeekday && totalMins >= 555 && totalMins <= 930;
 
   const status: MarketSentiment["status"] =
     avgChange > 0.5 ? "Upbeat" : avgChange < -0.5 ? "Bearish" : "Neutral";

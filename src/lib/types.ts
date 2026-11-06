@@ -11,9 +11,51 @@ export interface AssetQuote {
   sparkline?: number[];
 }
 
-export interface SparklinePoint {
+export interface DetailedStockQuote {
+  symbol: string;
+  name: string;
+  shortName?: string;
+  currency: string;
+  exchange: string;
+  country?: string;
+  price: number;
+  change: number;
+  changePercent: number;
+  previousClose: number;
+  marketState: string;
+  
+  // Key Stats
+  marketCap?: number;
+  dayLow?: number;
+  dayHigh?: number;
+  fiftyTwoWeekLow?: number;
+  fiftyTwoWeekHigh?: number;
+  trailingPE?: number;
+  forwardPE?: number;
+  eps?: number;
+  dividendYield?: number;
+  volume?: number;
+  averageVolume?: number;
+
+  // Profile Info
+  ceo?: string;
+  ipoDate?: string;
+  fullTimeEmployees?: number;
+  sector?: string;
+  industry?: string;
+  summary?: string;
+  website?: string;
+  analystRating?: string;
+}
+
+export interface CandlePoint {
   date: string;
+  timestamp: number;
+  open: number;
+  high: number;
+  low: number;
   close: number;
+  volume: number;
 }
 
 export interface NewsItem {
@@ -26,7 +68,7 @@ export interface NewsItem {
 }
 
 export interface MarketSentiment {
-  status: 'Bullish' | 'Bearish' | 'Neutral' | 'Upbeat';
+  status: "Bullish" | "Bearish" | "Neutral" | "Upbeat";
   score: number; // 0 to 10
   description: string;
   marketOpen: boolean;
@@ -40,3 +82,5 @@ export interface SearchResult {
   exchange?: string;
   quoteType?: string;
 }
+
+export type TimeRange = "1D" | "5D" | "1M" | "6M" | "YTD" | "1Y" | "5Y" | "MAX";

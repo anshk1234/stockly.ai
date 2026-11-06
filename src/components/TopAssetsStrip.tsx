@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { ArrowUpRight, ArrowDownRight, ChevronDown, RefreshCw } from "lucide-react";
 import { AssetQuote } from "@/lib/types";
 import { formatPrice, formatPercent, formatChange } from "@/lib/utils";
@@ -46,13 +47,14 @@ export function TopAssetsStrip({
         {assets.map((asset) => {
           const isPositive = asset.changePercent >= 0;
           return (
-            <div
+            <Link
               key={asset.symbol}
-              className="group relative flex flex-col justify-between bg-[#11151F] hover:bg-[#151A26] border border-[#1C2230] hover:border-neutral-700/60 rounded-xl p-3.5 transition-all duration-200 shadow-sm"
+              href={`/stocks/${encodeURIComponent(asset.symbol)}`}
+              className="group relative flex flex-col justify-between bg-[#11151F] hover:bg-[#151A26] border border-[#1C2230] hover:border-neutral-700/60 rounded-xl p-3.5 transition-all duration-200 shadow-sm cursor-pointer"
             >
               {/* Asset Title and Price */}
               <div>
-                <div className="text-xs font-medium text-neutral-300 truncate mb-1">
+                <div className="text-xs font-medium text-neutral-300 truncate mb-1 group-hover:text-emerald-400 transition-colors">
                   {asset.name}
                 </div>
                 <div className="flex items-baseline justify-between gap-2">
@@ -88,7 +90,7 @@ export function TopAssetsStrip({
                   width={220}
                 />
               </div>
-            </div>
+            </Link>
           );
         })}
       </div>

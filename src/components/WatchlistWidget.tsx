@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { SlidersHorizontal, ChevronRight, TrendingUp } from "lucide-react";
 import { AssetQuote } from "@/lib/types";
 import { formatPrice, formatPercent } from "@/lib/utils";
@@ -48,8 +49,9 @@ export function WatchlistWidget({
             const isPositive = stock.changePercent >= 0;
 
             return (
-              <div
+              <Link
                 key={stock.symbol}
+                href={`/stocks/${encodeURIComponent(stock.symbol)}`}
                 className="flex items-center justify-between p-3 rounded-xl bg-[#11151F] hover:bg-[#151A26] border border-[#1C2230] hover:border-neutral-700/60 transition-all cursor-pointer group"
               >
                 {/* Brand / Logo + Ticker Info */}
@@ -92,7 +94,7 @@ export function WatchlistWidget({
                     {formatPercent(stock.changePercent)}
                   </div>
                 </div>
-              </div>
+              </Link>
             );
           })
         )}

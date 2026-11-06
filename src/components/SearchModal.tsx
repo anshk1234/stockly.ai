@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Search, X, Loader2, ArrowRight, TrendingUp } from "lucide-react";
 import { SearchResult } from "@/lib/types";
 
@@ -11,6 +12,7 @@ interface SearchModalProps {
 }
 
 export function SearchModal({ isOpen, onClose, onSelectSymbol }: SearchModalProps) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -42,7 +44,19 @@ export function SearchModal({ isOpen, onClose, onSelectSymbol }: SearchModalProp
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
-  // Debounced search query
+  const handleSelect = (sym: string) => {
+    onSelectSymbol?.(sym);
+    onClose();
+    router.push(`/stocks/${encodeURIComponent(sym)}`);
+  };
+
+  const handleKeyDownInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && query.trim()) {
+      e.preventDefault();
+      const firstResult = results[0]?.symbol || query.trim();
+      handleSelect(firstResult);
+    }
+  };
   useEffect(() => {
     if (!query.trim()) {
       setResults([]);
@@ -82,7 +96,8 @@ export function SearchModal({ isOpen, onClose, onSelectSymbol }: SearchModalProp
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search symbols (e.g. RELIANCE, NIFTY, AAPL, BTC)..."
+            onKeyDown={handleKeyDownInput}
+            placeholder="Search symbols (e.g. NVDA, AAPL, RELIANCE.NS, BTC-USD)..."
             className="w-full bg-transparent text-sm text-white placeholder-neutral-500 focus:outline-none"
           />
           {isLoading && <Loader2 className="w-4 h-4 text-neutral-400 animate-spin shrink-0" />}
@@ -106,10 +121,7 @@ export function SearchModal({ isOpen, onClose, onSelectSymbol }: SearchModalProp
             results.map((item, idx) => (
               <div
                 key={`${item.symbol}-${idx}`}
-                onClick={() => {
-                  onSelectSymbol?.(item.symbol);
-                  onClose();
-                }}
+                onClick={() => handleSelect(item.symbol)}
                 className="flex items-center justify-between p-2.5 rounded-lg hover:bg-[#161D2B] transition-colors cursor-pointer group"
               >
                 <div className="flex items-center gap-2.5">
