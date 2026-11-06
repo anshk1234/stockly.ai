@@ -8,11 +8,14 @@ import { MarketSummary } from "@/components/MarketSummary";
 import { WatchlistWidget } from "@/components/WatchlistWidget";
 import { PredictionWidget } from "@/components/PredictionWidget";
 import { SearchModal } from "@/components/SearchModal";
-import { AssetQuote, NewsItem, MarketSentiment } from "@/lib/types";
+import { CryptoView } from "@/components/views/CryptoView";
+import { PredictionsView } from "@/components/views/PredictionsView";
+import { WatchlistView } from "@/components/views/WatchlistView";
+import { AssetQuote, NewsItem, MarketSentiment, DashboardTab } from "@/lib/types";
 
 export default function Home() {
   const [region, setRegion] = useState<"IN" | "US">("IN");
-  const [activeTab, setActiveTab] = useState("India Markets");
+  const [activeTab, setActiveTab] = useState<DashboardTab>("Markets");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   // Dynamic Data States
@@ -128,50 +131,77 @@ export default function Home() {
       {/* Top Header */}
       <Header onOpenSearch={() => setIsSearchOpen(true)} />
 
-      {/* Sub Header Navigation & Market Sentiment */}
+      {/* Sub Header Navigation: Markets Dropdown, Crypto, Predictions, Watchlist ONLY */}
       <SubHeader
         region={region}
-        onRegionChange={(newRegion) => setRegion(newRegion)}
+        onRegionChange={(newRegion) => {
+          setRegion(newRegion);
+          setActiveTab("Markets");
+        }}
         sentiment={sentiment}
         activeTab={activeTab}
         onTabChange={(tab) => setActiveTab(tab)}
       />
 
-      {/* Main Content Grid */}
+      {/* Main Content Area */}
       <main className="flex-1 max-w-[1600px] w-full mx-auto px-4 lg:px-8 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Left / Center Main Content (8 cols on lg) */}
-          <section className="lg:col-span-8 flex flex-col">
-            {/* Top Assets Horizontal Sparkline Strip */}
-            <TopAssetsStrip
-              assets={assets}
-              region={region}
-              onRegionToggle={() => setRegion(region === "IN" ? "US" : "IN")}
-              isLoading={isLoadingAssets}
-              onRefresh={() => fetchAssets(region)}
-            />
+        {/* Tab 1: Markets Overview */}
+        {activeTab === "Markets" && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <section className="lg:col-span-8 flex flex-col">
+              <TopAssetsStrip
+                assets={assets}
+                region={region}
+                onRegionToggle={() => setRegion(region === "IN" ? "US" : "IN")}
+                isLoading={isLoadingAssets}
+                onRefresh={() => fetchAssets(region)}
+              />
 
-            {/* Market Summary Accordion */}
-            <MarketSummary
-              news={news}
-              isLoading={isLoadingNews}
-              lastUpdated={lastUpdated}
-            />
-          </section>
+              <MarketSummary
+                news={news}
+                isLoading={isLoadingNews}
+                lastUpdated={lastUpdated}
+              />
+            </section>
 
-          {/* Right Sidebar (4 cols on lg) */}
-          <aside className="lg:col-span-4 flex flex-col">
-            {/* Watchlist Section */}
-            <WatchlistWidget
-              items={watchlist}
-              isLoading={isLoadingWatchlist}
-              onManageWatchlist={() => setIsSearchOpen(true)}
-            />
+            <aside className="lg:col-span-4 flex flex-col">
+              <WatchlistWidget
+                items={watchlist}
+                isLoading={isLoadingWatchlist}
+                onManageWatchlist={() => setIsSearchOpen(true)}
+              />
 
-            {/* Prediction Markets Section */}
-            <PredictionWidget />
-          </aside>
-        </div>
+              <PredictionWidget />
+            </aside>
+          </div>
+        )}
+
+        {/* Tab 2: Crypto View */}
+        {activeTab === "Crypto" && (
+          <CryptoView
+            watchlist={watchlist}
+            isLoadingWatchlist={isLoadingWatchlist}
+            onOpenSearch={() => setIsSearchOpen(true)}
+          />
+        )}
+
+        {/* Tab 3: Predictions View */}
+        {activeTab === "Predictions" && (
+          <PredictionsView
+            watchlist={watchlist}
+            isLoadingWatchlist={isLoadingWatchlist}
+            onOpenSearch={() => setIsSearchOpen(true)}
+          />
+        )}
+
+        {/* Tab 4: Watchlist View */}
+        {activeTab === "Watchlist" && (
+          <WatchlistView
+            watchlist={watchlist}
+            isLoadingWatchlist={isLoadingWatchlist}
+            onOpenSearch={() => setIsSearchOpen(true)}
+          />
+        )}
       </main>
 
       {/* Live Search Modal */}

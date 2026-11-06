@@ -2,25 +2,17 @@
 
 import React, { useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { MarketSentiment } from "@/lib/types";
+import { MarketSentiment, DashboardTab } from "@/lib/types";
 
 interface SubHeaderProps {
   region: "IN" | "US";
   onRegionChange: (region: "IN" | "US") => void;
   sentiment: MarketSentiment | null;
-  activeTab: string;
-  onTabChange: (tab: string) => void;
+  activeTab: DashboardTab;
+  onTabChange: (tab: DashboardTab) => void;
 }
 
-const TABS = [
-  "Crypto",
-  "Earnings",
-  "Predictions",
-  "Screener",
-  "Watchlist",
-  "Workflows",
-  "App Gallery",
-];
+const TABS: DashboardTab[] = ["Crypto", "Predictions", "Watchlist"];
 
 export function SubHeader({
   region,
@@ -32,15 +24,22 @@ export function SubHeader({
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   return (
-    <div className="w-full border-b border-[#23252A] bg-[#141517] px-4 lg:px-6 py-2">
+    <div className="w-full border-b border-[#23252A] bg-[#141517] px-4 lg:px-8 py-2">
       <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row md:items-center justify-between gap-2.5 overflow-x-auto no-scrollbar">
         {/* Navigation Tabs and Market Selector */}
         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           {/* Region Dropdown */}
           <div className="relative">
             <button
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-[#EDEDEE] hover:bg-[#1E1F24] rounded-md transition-colors border-b border-white pb-1.5 -mb-2"
+              onClick={() => {
+                setDropdownOpen(!dropdownOpen);
+                onTabChange("Markets");
+              }}
+              className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+                activeTab === "Markets"
+                  ? "text-[#EDEDEE] border-b border-white pb-1.5 -mb-2"
+                  : "text-[#8E929B] hover:text-[#EDEDEE]"
+              }`}
             >
               <span>{region === "IN" ? "🇮🇳 India Markets" : "🇺🇸 US Markets"}</span>
               <ChevronDown className="w-3.5 h-3.5 text-[#8E929B]" />
@@ -51,6 +50,7 @@ export function SubHeader({
                 <button
                   onClick={() => {
                     onRegionChange("IN");
+                    onTabChange("Markets");
                     setDropdownOpen(false);
                   }}
                   className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-[#23252B] transition-colors ${
@@ -63,6 +63,7 @@ export function SubHeader({
                 <button
                   onClick={() => {
                     onRegionChange("US");
+                    onTabChange("Markets");
                     setDropdownOpen(false);
                   }}
                   className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-[#23252B] transition-colors ${
@@ -78,7 +79,7 @@ export function SubHeader({
 
           <div className="h-3.5 w-[1px] bg-[#2B2D33] mx-1.5 hidden sm:block"></div>
 
-          {/* Secondary Filter Tabs */}
+          {/* Filter Tabs: Crypto, Predictions, Watchlist ONLY */}
           <div className="flex items-center gap-1 text-xs text-[#8E929B]">
             {TABS.map((tab) => {
               const isActive = activeTab === tab;
@@ -86,8 +87,10 @@ export function SubHeader({
                 <button
                   key={tab}
                   onClick={() => onTabChange(tab)}
-                  className={`px-2 py-1 rounded-md hover:text-[#EDEDEE] transition-colors whitespace-nowrap ${
-                    isActive ? "text-[#EDEDEE] font-medium bg-[#1E1F24]" : ""
+                  className={`px-2.5 py-1 rounded-md transition-colors whitespace-nowrap ${
+                    isActive
+                      ? "text-[#EDEDEE] font-medium border-b border-white pb-1.5 -mb-2"
+                      : "hover:text-[#EDEDEE]"
                   }`}
                 >
                   {tab}

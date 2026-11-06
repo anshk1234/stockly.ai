@@ -9,6 +9,11 @@ export interface AssetQuote {
   exchange?: string;
   marketState?: string;
   sparkline?: number[];
+  // Multi-period performance for watchlist
+  perf1D?: number;
+  perf5D?: number;
+  perf1M?: number;
+  perf6M?: number;
 }
 
 export interface DetailedStockQuote {
@@ -23,8 +28,7 @@ export interface DetailedStockQuote {
   changePercent: number;
   previousClose: number;
   marketState: string;
-  
-  // Key Stats
+
   marketCap?: number;
   dayLow?: number;
   dayHigh?: number;
@@ -37,7 +41,6 @@ export interface DetailedStockQuote {
   volume?: number;
   averageVolume?: number;
 
-  // Profile Info
   ceo?: string;
   ipoDate?: string;
   fullTimeEmployees?: number;
@@ -69,7 +72,7 @@ export interface NewsItem {
 
 export interface MarketSentiment {
   status: "Bullish" | "Bearish" | "Neutral" | "Upbeat";
-  score: number; // 0 to 10
+  score: number;
   description: string;
   marketOpen: boolean;
   marketTimeIST: string;
@@ -84,3 +87,5 @@ export interface SearchResult {
 }
 
 export type TimeRange = "1D" | "5D" | "1M" | "6M" | "YTD" | "1Y" | "5Y" | "MAX";
+
+export type DashboardTab = "Markets" | "Crypto" | "Predictions" | "Watchlist";

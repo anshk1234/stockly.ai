@@ -5,10 +5,13 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const region = (searchParams.get("region") || "IN") as "IN" | "US";
+  const category = (searchParams.get("category") || searchParams.get("region") || "IN").toUpperCase() as
+    | "IN"
+    | "US"
+    | "CRYPTO";
 
   try {
-    const news = await getMarketNews(region);
+    const news = await getMarketNews(category);
     return NextResponse.json({ news }, {
       headers: {
         "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",

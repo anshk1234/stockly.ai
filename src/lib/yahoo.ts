@@ -16,6 +16,9 @@ const ASSET_NAMES: Record<string, { name: string; currency: string }> = {
   "^BSESN": { name: "S&P BSE Sensex", currency: "INR" },
   "^NSEBANK": { name: "Nifty Bank Index", currency: "INR" },
   "BTC-USD": { name: "Bitcoin", currency: "USD" },
+  "ETH-USD": { name: "Ethereum", currency: "USD" },
+  "SOL-USD": { name: "Solana", currency: "USD" },
+  "XRP-USD": { name: "XRP", currency: "USD" },
   "^GSPC": { name: "S&P 500", currency: "USD" },
   "^IXIC": { name: "Nasdaq Composite", currency: "USD" },
   "^DJI": { name: "Dow Jones", currency: "USD" },
@@ -55,7 +58,7 @@ async function fetchSparkline(symbol: string): Promise<number[]> {
 }
 
 /**
- * Retrieve Top Assets dynamically with real-time quotes & sparklines (cached for 15s)
+ * Retrieve Top Assets dynamically (cached for 15s)
  */
 export async function getTopAssets(region: "IN" | "US" = "IN"): Promise<AssetQuote[]> {
   return serverCache.getOrSet(`top-assets-${region}`, 15, async () => {
@@ -102,7 +105,82 @@ export async function getTopAssets(region: "IN" | "US" = "IN"): Promise<AssetQuo
 }
 
 /**
- * Retrieve Detailed Stock Quote & Profile Info (Quote 15s, Profile 24h)
+ * Retrieve Crypto Movements (Bitcoin, Ethereum, Solana) with sparklines
+ */
+export async function getCryptoAssets(): Promise<AssetQuote[]> {
+  return serverCache.getOrSet("crypto-movements", 15, async () => {
+    const symbols = ["BTC-USD", "ETH-USD", "SOL-USD"];
+    try {
+      const quotes = await yf.quote(symbols);
+      const list = Array.isArray(quotes) ? quotes : [quotes];
+
+      return await Promise.all(
+        list.map(async (q) => {
+          const config = ASSET_NAMES[q.symbol] || {
+            name: q.shortName || q.symbol,
+            currency: "USD",
+          };
+
+          const sparkline = await fetchSparkline(q.symbol);
+
+          return {
+            symbol: q.symbol,
+            name: config.name,
+            shortName: q.shortName,
+            price: q.regularMarketPrice ?? 0,
+            change: q.regularMarketChange ?? 0,
+            changePercent: q.regularMarketChangePercent ?? 0,
+            currency: "USD",
+            exchange: "CRYPTO",
+            marketState: "REGULAR",
+            sparkline,
+          };
+        })
+      );
+    } catch (error) {
+      console.error("Error fetching crypto assets:", error);
+      return [];
+    }
+  });
+}
+
+/**
+ * Retrieve Popular Cryptocurrencies for sidebar
+ */
+export async function getPopularCryptos(): Promise<AssetQuote[]> {
+  return serverCache.getOrSet("popular-cryptos", 15, async () => {
+    const symbols = ["BTC-USD", "ETH-USD", "SOL-USD", "XRP-USD"];
+    try {
+      const quotes = await yf.quote(symbols);
+      const list = Array.isArray(quotes) ? quotes : [quotes];
+
+      return list.map((q) => {
+        const config = ASSET_NAMES[q.symbol] || {
+          name: q.shortName || q.symbol,
+          currency: "USD",
+        };
+
+        return {
+          symbol: q.symbol,
+          name: config.name,
+          shortName: q.symbol.replace("-USD", ""),
+          price: q.regularMarketPrice ?? 0,
+          change: q.regularMarketChange ?? 0,
+          changePercent: q.regularMarketChangePercent ?? 0,
+          currency: "USD",
+          exchange: "CRYPTO",
+          marketState: "REGULAR",
+        };
+      });
+    } catch (error) {
+      console.error("Error fetching popular cryptos:", error);
+      return [];
+    }
+  });
+}
+
+/**
+ * Retrieve Detailed Stock Quote & Profile Info
  */
 export async function getStockDetails(symbol: string): Promise<DetailedStockQuote | null> {
   return serverCache.getOrSet(`stock-details-${symbol}`, 15, async () => {
@@ -110,7 +188,6 @@ export async function getStockDetails(symbol: string): Promise<DetailedStockQuot
       const quote = await yf.quote(symbol);
       if (!quote) return null;
 
-      // Cache profile summary for 24 hours as company bio/CEO doesn't change frequently
       const profile = await serverCache.getOrSet<any>(`profile-${symbol}`, 86400, async () => {
         try {
           const summary = await yf.quoteSummary(symbol, { modules: ["assetProfile"] });
@@ -178,8 +255,7 @@ export async function getStockDetails(symbol: string): Promise<DetailedStockQuot
 }
 
 /**
- * Retrieve Historical Chart Candlesticks for a specific TimeRange
- * (1D/5D cached for 60s, longer historical ranges cached for 300s)
+ * Retrieve Historical Chart Candlesticks
  */
 export async function getStockChart(
   symbol: string,
@@ -254,34 +330,67 @@ export async function getStockChart(
 }
 
 /**
- * Retrieve Watchlist quotes dynamically (cached for 15s)
+ * Retrieve Watchlist quotes with multi-period performance (1D, 5D, 1M, 6M)
  */
 export async function getWatchlist(symbols: string[] = ["MSFT", "AAPL", "NVDA"]): Promise<AssetQuote[]> {
-  const cacheKey = `watchlist-${[...symbols].sort().join(",")}`;
+  const cacheKey = `watchlist-perf-${[...symbols].sort().join(",")}`;
 
   return serverCache.getOrSet(cacheKey, 15, async () => {
     try {
       const quotes = await yf.quote(symbols);
       const quotesList = Array.isArray(quotes) ? quotes : [quotes];
 
-      return quotesList.map((q) => {
-        const config = ASSET_NAMES[q.symbol] || {
-          name: q.shortName || q.symbol,
-          currency: q.currency || "USD",
-        };
+      const results = await Promise.all(
+        quotesList.map(async (q) => {
+          const config = ASSET_NAMES[q.symbol] || {
+            name: q.shortName || q.symbol,
+            currency: q.currency || "USD",
+          };
 
-        return {
-          symbol: q.symbol,
-          name: config.name,
-          shortName: q.shortName,
-          price: q.regularMarketPrice ?? 0,
-          change: q.regularMarketChange ?? 0,
-          changePercent: q.regularMarketChangePercent ?? 0,
-          currency: config.currency,
-          exchange: q.fullExchangeName || q.exchange,
-          marketState: q.marketState,
-        };
-      });
+          // Fetch historical 6M daily candles to compute accurate 1D, 5D, 1M, 6M returns
+          let perf1D = q.regularMarketChangePercent ?? 0;
+          let perf5D = 0;
+          let perf1M = 0;
+          let perf6M = 0;
+
+          try {
+            const period1 = new Date(Date.now() - 190 * 24 * 60 * 60 * 1000);
+            const chartData = await yf.chart(q.symbol, { period1, interval: "1d" });
+            const historical = (chartData.quotes || []).filter((h) => h.close !== null && !isNaN(h.close as number));
+
+            if (historical.length >= 2) {
+              const current = q.regularMarketPrice || (historical[historical.length - 1].close as number);
+              const p5 = (historical[Math.max(0, historical.length - 6)]?.close as number) || current;
+              const p1m = (historical[Math.max(0, historical.length - 23)]?.close as number) || current;
+              const p6m = (historical[0]?.close as number) || current;
+
+              perf5D = ((current - p5) / p5) * 100;
+              perf1M = ((current - p1m) / p1m) * 100;
+              perf6M = ((current - p6m) / p6m) * 100;
+            }
+          } catch {
+            // fallback
+          }
+
+          return {
+            symbol: q.symbol,
+            name: config.name,
+            shortName: q.shortName,
+            price: q.regularMarketPrice ?? 0,
+            change: q.regularMarketChange ?? 0,
+            changePercent: q.regularMarketChangePercent ?? 0,
+            currency: config.currency,
+            exchange: q.fullExchangeName || q.exchange,
+            marketState: q.marketState,
+            perf1D,
+            perf5D,
+            perf1M,
+            perf6M,
+          };
+        })
+      );
+
+      return results;
     } catch (error) {
       console.error("Error fetching watchlist from Yahoo Finance:", error);
       return [];
@@ -290,12 +399,17 @@ export async function getWatchlist(symbols: string[] = ["MSFT", "AAPL", "NVDA"])
 }
 
 /**
- * Retrieve Live Market News dynamically (cached for 120s)
+ * Retrieve Live Market News dynamically
  */
-export async function getMarketNews(region: "IN" | "US" = "IN"): Promise<NewsItem[]> {
-  return serverCache.getOrSet(`news-${region}`, 120, async () => {
+export async function getMarketNews(category: "IN" | "US" | "CRYPTO" = "IN"): Promise<NewsItem[]> {
+  return serverCache.getOrSet(`news-${category}`, 120, async () => {
     try {
-      const queries = region === "IN" ? ["NIFTY", "Sensex"] : ["S&P 500", "Nasdaq"];
+      const queries =
+        category === "CRYPTO"
+          ? ["Bitcoin crypto", "Ethereum crypto"]
+          : category === "IN"
+          ? ["NIFTY", "Sensex"]
+          : ["S&P 500", "Nasdaq"];
 
       const searchPromises = queries.map((q) =>
         yf.search(q, { newsCount: 6 }).catch(() => ({ news: [] }))
@@ -324,7 +438,7 @@ export async function getMarketNews(region: "IN" | "US" = "IN"): Promise<NewsIte
           : new Date().toISOString(),
         summary:
           item.relatedTickers && item.relatedTickers.length > 0
-            ? `Key market developments impacting ${item.relatedTickers.join(", ")} and macroeconomic sentiment across benchmark indices.`
+            ? `Key market developments impacting ${item.relatedTickers.join(", ")} and macroeconomic sentiment across markets.`
             : undefined,
       }));
     } catch (error) {
