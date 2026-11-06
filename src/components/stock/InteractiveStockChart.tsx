@@ -484,7 +484,6 @@ export function InteractiveStockChart({
               : "cursor-grab"
             : "cursor-crosshair"
         }`}
-        title="Scroll wheel to zoom in/out at pointer · Drag to pan · Double-click to reset"
       >
         <svg
           viewBox={`0 0 ${containerWidth} ${height}`}
