@@ -1,36 +1,87 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Stockly.ai 📈
 
-## Getting Started
+[![CI Pipeline](https://github.com/anshk1234/stockly.ai/actions/workflows/ci.yml/badge.svg)](https://github.com/anshk1234/stockly.ai/actions/workflows/ci.yml)
+[![Vercel Deployment](https://img.shields.io/badge/Deployed%20on-Vercel-black?logo=vercel)](https://stocklyai.vercel.app/)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-First, run the development server:
+A lightweight, highly optimized financial intelligence platform to track global stocks, cryptocurrencies, and prediction markets in real-time. Engineered to handle large-scale live market data with minimal resource consumption.
+
+🔗 **Live Demo**: [https://stocklyai.vercel.app/](https://stocklyai.vercel.app/)
+
+---
+
+## ✨ Features
+
+- **Live Market Intelligence**: Real-time quotes, multi-period performance metrics, and financial news dynamically streamed via Yahoo Finance.
+- **Interactive Pro Charting**:
+  - Pointer-anchored mouse wheel zoom in and out.
+  - Smooth click-and-drag panning across historical periods.
+  - Hairline price and time grid lines with baseline indicators.
+  - Glassmorphic, translucent hover card that never obscures data points.
+- **Dynamic Brand Logos**: Automated high-resolution favicon fetching via company website domains with fallback monogram badges.
+- **Instant Search Popover**: Zero background blur, keyboard accessible (`⌘K`), with recent searches and live trending tickers.
+- **Multi-Market Support**: Seamless toggle between Indian Markets (NIFTY 50, BSE Sensex) and US Markets (NASDAQ, S&P 500).
+- **Sub-35ms In-Memory Cache**: High-performance TTL caching minimizing API latency and shielding rate limits.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Framework**: [Next.js 16](https://nextjs.org/) (App Router, Turbopack)
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
+- **Icons**: [Lucide React](https://lucide.dev/)
+- **Data Engine**: `yahoo-finance2` API with in-memory TTL caching
+- **CI/CD**: GitHub Actions & Vercel Edge Network
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js 20+ installed
+- npm / yarn / pnpm
+
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/anshk1234/stockly.ai.git
+   cd stockly.ai
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Run the development server:
+   ```bash
+   npm run dev
+   ```
+
+4. Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+---
+
+## 🧪 Testing & CI
+
+Validate code quality and build compilation:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Run ESLint
+npm run lint
+
+# Run TypeScript type check
+npx tsc --noEmit
+
+# Run production build
+npm run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📄 License
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Licensed under the [Apache-2.0 License](LICENSE).
