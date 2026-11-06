@@ -27,13 +27,11 @@ export function SearchModal({ isOpen, onClose, onSelectSymbol }: SearchModalProp
     }
   }, [isOpen]);
 
-  // Keyboard shortcut listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
-        if (isOpen) onClose();
-        else onClose(); // handled by parent state toggle
+        onClose();
       }
       if (e.key === "Escape" && isOpen) {
         onClose();
@@ -57,6 +55,7 @@ export function SearchModal({ isOpen, onClose, onSelectSymbol }: SearchModalProp
       handleSelect(firstResult);
     }
   };
+
   useEffect(() => {
     if (!query.trim()) {
       setResults([]);
@@ -83,14 +82,14 @@ export function SearchModal({ isOpen, onClose, onSelectSymbol }: SearchModalProp
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
       <div
-        className="relative w-full max-w-xl rounded-2xl bg-[#10141E] border border-[#222A3C] shadow-2xl overflow-hidden"
+        className="relative w-full max-w-xl rounded-2xl bg-[#1B1C20] border border-[#282A2F] shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Input row */}
-        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-[#1C2333]">
-          <Search className="w-4 h-4 text-neutral-400 shrink-0" />
+        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-[#26282E]">
+          <Search className="w-4 h-4 text-[#6D717B] shrink-0" />
           <input
             ref={inputRef}
             type="text"
@@ -98,12 +97,12 @@ export function SearchModal({ isOpen, onClose, onSelectSymbol }: SearchModalProp
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDownInput}
             placeholder="Search symbols (e.g. NVDA, AAPL, RELIANCE.NS, BTC-USD)..."
-            className="w-full bg-transparent text-sm text-white placeholder-neutral-500 focus:outline-none"
+            className="w-full bg-transparent text-sm text-white placeholder-[#6D717B] focus:outline-none"
           />
-          {isLoading && <Loader2 className="w-4 h-4 text-neutral-400 animate-spin shrink-0" />}
+          {isLoading && <Loader2 className="w-4 h-4 text-[#8E929B] animate-spin shrink-0" />}
           <button
             onClick={onClose}
-            className="p-1 rounded text-neutral-400 hover:text-white hover:bg-[#1A202E]"
+            className="p-1 rounded text-[#8E929B] hover:text-white hover:bg-[#24262C]"
           >
             <X className="w-4 h-4" />
           </button>
@@ -112,7 +111,7 @@ export function SearchModal({ isOpen, onClose, onSelectSymbol }: SearchModalProp
         {/* Results area */}
         <div className="max-h-80 overflow-y-auto p-2">
           {results.length === 0 && !isLoading ? (
-            <div className="py-8 text-center text-xs text-neutral-500">
+            <div className="py-8 text-center text-xs text-[#6D717B]">
               {query.trim()
                 ? "No symbols found for this search."
                 : "Type to search stocks, crypto, indices from Yahoo Finance."}
@@ -122,27 +121,27 @@ export function SearchModal({ isOpen, onClose, onSelectSymbol }: SearchModalProp
               <div
                 key={`${item.symbol}-${idx}`}
                 onClick={() => handleSelect(item.symbol)}
-                className="flex items-center justify-between p-2.5 rounded-lg hover:bg-[#161D2B] transition-colors cursor-pointer group"
+                className="flex items-center justify-between p-2.5 rounded-lg hover:bg-[#22242A] transition-colors cursor-pointer group"
               >
                 <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded bg-[#182030] flex items-center justify-center text-emerald-400 text-xs">
+                  <div className="w-7 h-7 rounded bg-[#24262C] flex items-center justify-center text-emerald-400 text-xs">
                     <TrendingUp className="w-3.5 h-3.5" />
                   </div>
                   <div>
                     <div className="text-xs font-semibold text-white group-hover:text-emerald-400 transition-colors">
                       {item.symbol}
                     </div>
-                    <div className="text-[11px] text-neutral-400 truncate max-w-sm">
+                    <div className="text-[11px] text-[#8E929B] truncate max-w-sm">
                       {item.shortname || item.longname || item.symbol}
                     </div>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-[#1C2436] text-neutral-400">
+                  <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-[#24262C] text-[#8E929B]">
                     {item.exchange || "EXCHANGE"}
                   </span>
-                  <ArrowRight className="w-3.5 h-3.5 text-neutral-600 group-hover:text-neutral-300 transition-colors" />
+                  <ArrowRight className="w-3.5 h-3.5 text-[#545762] group-hover:text-[#A1A4AC] transition-colors" />
                 </div>
               </div>
             ))

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { SidebarRail } from "@/components/SidebarRail";
 import { Header } from "@/components/Header";
 import { SubHeader } from "@/components/SubHeader";
 import { TopAssetsStrip } from "@/components/TopAssetsStrip";
@@ -117,7 +118,6 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [region, watchlistSymbols, fetchAssets, fetchWatchlist, fetchStatus]);
 
-  // Handle adding a symbol from search to watchlist
   const handleSelectSymbol = (symbol: string) => {
     if (!watchlistSymbols.includes(symbol)) {
       setWatchlistSymbols((prev) => [symbol, ...prev]);
@@ -125,55 +125,62 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0D14] text-neutral-100 flex flex-col selection:bg-emerald-500/30 selection:text-emerald-300">
-      {/* Top Header */}
-      <Header onOpenSearch={() => setIsSearchOpen(true)} />
+    <div className="min-h-screen bg-[#141517] text-[#EDEDEE] flex">
+      {/* Left Vertical Icon Rail matching Screenshot */}
+      <SidebarRail />
 
-      {/* Sub Header Navigation & Market Sentiment */}
-      <SubHeader
-        region={region}
-        onRegionChange={(newRegion) => setRegion(newRegion)}
-        sentiment={sentiment}
-        activeTab={activeTab}
-        onTabChange={(tab) => setActiveTab(tab)}
-      />
+      {/* Main Body Column */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Top Header */}
+        <Header onOpenSearch={() => setIsSearchOpen(true)} />
 
-      {/* Main Content Grid */}
-      <main className="flex-1 max-w-[1600px] w-full mx-auto px-4 lg:px-8 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Left / Center Main Content (8 cols on lg) */}
-          <section className="lg:col-span-8 flex flex-col">
-            {/* Top Assets Horizontal Sparkline Strip */}
-            <TopAssetsStrip
-              assets={assets}
-              region={region}
-              onRegionToggle={() => setRegion(region === "IN" ? "US" : "IN")}
-              isLoading={isLoadingAssets}
-              onRefresh={() => fetchAssets(region)}
-            />
+        {/* Sub Header Navigation & Market Sentiment */}
+        <SubHeader
+          region={region}
+          onRegionChange={(newRegion) => setRegion(newRegion)}
+          sentiment={sentiment}
+          activeTab={activeTab}
+          onTabChange={(tab) => setActiveTab(tab)}
+        />
 
-            {/* Market Summary Accordion */}
-            <MarketSummary
-              news={news}
-              isLoading={isLoadingNews}
-              lastUpdated={lastUpdated}
-            />
-          </section>
+        {/* Main Content Grid */}
+        <main className="flex-1 max-w-[1550px] w-full mx-auto px-4 lg:px-6 py-5">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Left / Center Main Content (8 cols on lg) */}
+            <section className="lg:col-span-8 flex flex-col">
+              {/* Top Assets Horizontal Sparkline Strip */}
+              <TopAssetsStrip
+                assets={assets}
+                region={region}
+                onRegionToggle={() => setRegion(region === "IN" ? "US" : "IN")}
+                isLoading={isLoadingAssets}
+                onRefresh={() => fetchAssets(region)}
+              />
 
-          {/* Right Sidebar (4 cols on lg) */}
-          <aside className="lg:col-span-4 flex flex-col">
-            {/* Watchlist Section */}
-            <WatchlistWidget
-              items={watchlist}
-              isLoading={isLoadingWatchlist}
-              onManageWatchlist={() => setIsSearchOpen(true)}
-            />
+              {/* Market Summary Accordion & AI Bar */}
+              <MarketSummary
+                news={news}
+                isLoading={isLoadingNews}
+                lastUpdated={lastUpdated}
+                region={region}
+              />
+            </section>
 
-            {/* Prediction Markets Section */}
-            <PredictionWidget />
-          </aside>
-        </div>
-      </main>
+            {/* Right Sidebar (4 cols on lg) */}
+            <aside className="lg:col-span-4 flex flex-col">
+              {/* Watchlist Section */}
+              <WatchlistWidget
+                items={watchlist}
+                isLoading={isLoadingWatchlist}
+                onManageWatchlist={() => setIsSearchOpen(true)}
+              />
+
+              {/* Prediction Markets & Market Movers Section */}
+              <PredictionWidget />
+            </aside>
+          </div>
+        </main>
+      </div>
 
       {/* Live Search Modal */}
       <SearchModal

@@ -48,7 +48,6 @@ export function InteractiveStockChart({
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(800);
 
-  // Resize listener
   useEffect(() => {
     const handleResize = () => {
       if (containerRef.current) {
@@ -60,14 +59,12 @@ export function InteractiveStockChart({
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Compute active point or fallback to latest point
   const latestCandle = candles[candles.length - 1];
   const activeCandle = hoverIndex !== null && candles[hoverIndex] ? candles[hoverIndex] : latestCandle;
 
   const activePrice = activeCandle ? activeCandle.close : initialPrice;
   const isHovering = hoverIndex !== null;
 
-  // Active price change compared to previous close
   const effectiveChange = activeCandle
     ? isHovering
       ? activeCandle.close - previousClose
@@ -77,13 +74,11 @@ export function InteractiveStockChart({
     previousClose > 0 ? (effectiveChange / previousClose) * 100 : initialChangePercent;
   const isPositive = effectiveChange >= 0;
 
-  // Chart dimensions
   const height = 360;
   const padding = { top: 24, right: 48, bottom: 48, left: 12 };
   const chartHeight = height - padding.top - padding.bottom;
   const chartWidth = Math.max(300, containerWidth - padding.left - padding.right);
 
-  // Min and Max prices for Y-axis
   const { minPrice, maxPrice, priceRange, maxVolume } = useMemo(() => {
     if (!candles || candles.length === 0) {
       return { minPrice: 0, maxPrice: 100, priceRange: 100, maxVolume: 1000 };
@@ -110,7 +105,6 @@ export function InteractiveStockChart({
     };
   }, [candles, previousClose]);
 
-  // SVG Points
   const points = useMemo(() => {
     if (!candles || candles.length === 0) return [];
     return candles.map((c, i) => {
@@ -119,13 +113,12 @@ export function InteractiveStockChart({
       const yOpen = padding.top + chartHeight - ((c.open - minPrice) / priceRange) * chartHeight;
       const yHigh = padding.top + chartHeight - ((c.high - minPrice) / priceRange) * chartHeight;
       const yLow = padding.top + chartHeight - ((c.low - minPrice) / priceRange) * chartHeight;
-      const volHeight = (c.volume / maxVolume) * 45; // max 45px volume bar
+      const volHeight = (c.volume / maxVolume) * 45;
       const volY = padding.top + chartHeight - volHeight;
       return { x, y, yOpen, yHigh, yLow, volY, volHeight, candle: c, index: i };
     });
   }, [candles, chartWidth, chartHeight, minPrice, priceRange, maxVolume, padding]);
 
-  // Smooth SVG Path
   const linePathD = useMemo(() => {
     if (points.length < 2) return "";
     return points.reduce((acc, pt, idx, arr) => {
@@ -139,7 +132,6 @@ export function InteractiveStockChart({
     }, "");
   }, [points]);
 
-  // Area Path
   const areaPathD = useMemo(() => {
     if (points.length < 2 || !linePathD) return "";
     const last = points[points.length - 1];
@@ -148,13 +140,11 @@ export function InteractiveStockChart({
     return `${linePathD} L ${last.x.toFixed(1)},${bottomY} L ${first.x.toFixed(1)},${bottomY} Z`;
   }, [linePathD, points, padding, chartHeight]);
 
-  // Previous Close Y level
   const prevCloseY = useMemo(() => {
     if (previousClose <= 0) return null;
     return padding.top + chartHeight - ((previousClose - minPrice) / priceRange) * chartHeight;
   }, [previousClose, minPrice, priceRange, padding, chartHeight]);
 
-  // Mouse Move over chart
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
     if (!containerRef.current || points.length === 0) return;
     const rect = containerRef.current.getBoundingClientRect();
@@ -169,7 +159,6 @@ export function InteractiveStockChart({
     setHoverIndex(null);
   };
 
-  // Date range label
   const dateRangeLabel = useMemo(() => {
     if (!candles || candles.length === 0) return "";
     const first = new Date(candles[0].date);
@@ -195,24 +184,24 @@ export function InteractiveStockChart({
   const activePoint = hoverIndex !== null && points[hoverIndex] ? points[hoverIndex] : null;
 
   return (
-    <div className="w-full rounded-2xl bg-[#11151F] border border-[#1C2230] p-4 sm:p-5 relative flex flex-col shadow-sm">
+    <div className="w-full rounded-2xl bg-[#1B1C20] border border-[#26282E] p-4 sm:p-5 relative flex flex-col shadow-sm">
       {/* Chart Top Metrics Header */}
       <div className="flex flex-wrap items-baseline justify-between gap-4 mb-4">
         <div>
           <div className="flex items-baseline gap-2.5">
-            <span className="text-2xl sm:text-3xl font-bold tracking-tight text-white font-mono">
+            <span className="text-2xl sm:text-3xl font-semibold tracking-tight text-white font-mono tabular-nums">
               {formatPrice(activePrice, currency)}
             </span>
 
             <div
-              className={`flex items-center text-sm sm:text-base font-semibold font-mono ${
+              className={`flex items-center text-sm sm:text-base font-medium font-mono tabular-nums ${
                 isPositive ? "text-emerald-400" : "text-rose-400"
               }`}
             >
               {isPositive ? (
-                <ArrowUpRight className="w-4 h-4 stroke-[2.5]" />
+                <ArrowUpRight className="w-4 h-4 stroke-[2.2]" />
               ) : (
-                <ArrowDownRight className="w-4 h-4 stroke-[2.5]" />
+                <ArrowDownRight className="w-4 h-4 stroke-[2.2]" />
               )}
               <span>{formatChange(effectiveChange, currency)}</span>
               <span className="ml-1 text-xs sm:text-sm">
@@ -221,14 +210,14 @@ export function InteractiveStockChart({
             </div>
           </div>
 
-          <div className="text-xs text-neutral-400 mt-1">
+          <div className="text-xs text-[#8E929B] mt-1">
             {dateRangeLabel}
           </div>
         </div>
 
         {/* Loading Indicator */}
         {isLoading && (
-          <div className="flex items-center gap-1.5 text-xs text-neutral-400 bg-[#161B28] px-2.5 py-1 rounded-full border border-neutral-800">
+          <div className="flex items-center gap-1.5 text-xs text-[#8E929B] bg-[#22242A] px-2.5 py-1 rounded-full border border-[#2B2D34]">
             <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-400" />
             <span>Updating...</span>
           </div>
@@ -236,7 +225,7 @@ export function InteractiveStockChart({
       </div>
 
       {/* Chart Toolbar: Time Ranges + Chart Mode Options */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 py-2.5 border-y border-[#181D2A] text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 py-2.5 border-y border-[#23252A] text-xs">
         {/* Time Range Pills */}
         <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
           {RANGES.map((r) => {
@@ -247,26 +236,26 @@ export function InteractiveStockChart({
                 onClick={() => onRangeChange(r)}
                 className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
                   isActive
-                    ? "bg-[#1E2538] text-white shadow-sm"
-                    : "text-neutral-400 hover:text-white hover:bg-[#161A26]"
+                    ? "bg-[#252830] text-white shadow-sm"
+                    : "text-[#8E929B] hover:text-white hover:bg-[#202227]"
                 }`}
               >
                 {r}
               </button>
             );
           })}
-          <button className="p-1 rounded text-neutral-400 hover:text-white hover:bg-[#161A26]">
+          <button className="p-1 rounded text-[#8E929B] hover:text-white hover:bg-[#202227]">
             <Calendar className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        {/* Controls: Chart Type, Compare, Camera, Expand */}
-        <div className="flex items-center gap-1.5 text-neutral-400">
-          <div className="flex items-center bg-[#161A26] rounded-lg p-0.5 border border-[#1E2434]">
+        {/* Controls */}
+        <div className="flex items-center gap-1.5 text-[#8E929B]">
+          <div className="flex items-center bg-[#202227] rounded-lg p-0.5 border border-[#2A2C33]">
             <button
               onClick={() => setChartType("area")}
               className={`p-1 rounded ${
-                chartType === "area" ? "bg-[#202738] text-white" : "hover:text-white"
+                chartType === "area" ? "bg-[#282B33] text-white" : "hover:text-white"
               }`}
               title="Area Line Chart"
             >
@@ -275,7 +264,7 @@ export function InteractiveStockChart({
             <button
               onClick={() => setChartType("candle")}
               className={`p-1 rounded ${
-                chartType === "candle" ? "bg-[#202738] text-white" : "hover:text-white"
+                chartType === "candle" ? "bg-[#282B33] text-white" : "hover:text-white"
               }`}
               title="Candlestick Chart"
             >
@@ -283,20 +272,20 @@ export function InteractiveStockChart({
             </button>
           </div>
 
-          <button className="hidden sm:flex items-center gap-1 px-2 py-1 rounded-lg bg-[#161A26] hover:bg-[#1E2538] text-neutral-300 border border-[#1E2434] transition-colors">
+          <button className="hidden sm:flex items-center gap-1 px-2 py-1 rounded-lg bg-[#202227] hover:bg-[#282B33] text-[#A1A4AC] hover:text-white border border-[#2A2C33] transition-colors">
             <span>Compare</span>
             <ChevronDown className="w-3 h-3" />
           </button>
 
-          <button className="p-1.5 rounded-lg hover:bg-[#161A26] hover:text-white transition-colors" title="Snapshot">
+          <button className="p-1.5 rounded-lg hover:bg-[#202227] hover:text-white transition-colors" title="Snapshot">
             <Camera className="w-3.5 h-3.5" />
           </button>
 
-          <button className="p-1.5 rounded-lg hover:bg-[#161A26] hover:text-white transition-colors" title="Full screen">
+          <button className="p-1.5 rounded-lg hover:bg-[#202227] hover:text-white transition-colors" title="Full screen">
             <Maximize2 className="w-3.5 h-3.5" />
           </button>
 
-          <button className="p-1.5 rounded-lg hover:bg-[#161A26] hover:text-white transition-colors">
+          <button className="p-1.5 rounded-lg hover:bg-[#202227] hover:text-white transition-colors">
             <MoreHorizontal className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -308,7 +297,7 @@ export function InteractiveStockChart({
         className="relative w-full h-[360px] cursor-crosshair select-none mt-2"
       >
         {/* Subtle Watermark */}
-        <div className="absolute top-4 right-14 pointer-events-none select-none text-[11px] font-mono tracking-wider font-semibold text-neutral-700/60 uppercase">
+        <div className="absolute top-4 right-14 pointer-events-none select-none text-[11px] font-mono tracking-wider font-semibold text-[#3A3D46] uppercase">
           stockly.ai
         </div>
 
@@ -322,19 +311,18 @@ export function InteractiveStockChart({
             <linearGradient id="stockAreaGradient" x1="0" y1="0" x2="0" y2="1">
               <stop
                 offset="0%"
-                stopColor={isPositive ? "#10b981" : "#ef4444"}
+                stopColor={isPositive ? "#22c55e" : "#ef4444"}
                 stopOpacity={0.25}
               />
               <stop
                 offset="100%"
-                stopColor={isPositive ? "#10b981" : "#ef4444"}
+                stopColor={isPositive ? "#22c55e" : "#ef4444"}
                 stopOpacity={0.0}
               />
             </linearGradient>
 
-            {/* Grid Pattern */}
             <pattern id="gridDots" width="30" height="30" patternUnits="userSpaceOnUse">
-              <circle cx="2" cy="2" r="0.75" fill="#1F2636" />
+              <circle cx="2" cy="2" r="0.75" fill="#26282E" />
             </pattern>
           </defs>
 
@@ -355,7 +343,7 @@ export function InteractiveStockChart({
                 y1={prevCloseY}
                 x2={padding.left + chartWidth}
                 y2={prevCloseY}
-                stroke="#4B5563"
+                stroke="#545762"
                 strokeWidth={1}
                 strokeDasharray="3 3"
                 opacity={0.6}
@@ -363,7 +351,7 @@ export function InteractiveStockChart({
               <text
                 x={padding.left + chartWidth + 6}
                 y={prevCloseY + 3}
-                fill="#6B7280"
+                fill="#717580"
                 fontSize={9}
                 fontFamily="monospace"
               >
@@ -382,19 +370,15 @@ export function InteractiveStockChart({
                 y={pt.volY}
                 width={3}
                 height={pt.volHeight}
-                fill={candleIsUp ? "#10b981" : "#ef4444"}
+                fill={candleIsUp ? "#22c55e" : "#ef4444"}
                 opacity={0.35}
               />
             );
           })}
 
-          {/* Line or Candlestick mode */}
           {chartType === "area" ? (
             <g>
-              {/* Gradient Area */}
               {areaPathD && <path d={areaPathD} fill="url(#stockAreaGradient)" />}
-
-              {/* Smooth Stroke Line */}
               {linePathD && (
                 <path
                   d={linePathD}
@@ -407,7 +391,6 @@ export function InteractiveStockChart({
               )}
             </g>
           ) : (
-            /* Candlestick Rendering */
             <g>
               {points.map((pt) => {
                 const isGreen = pt.candle.close >= pt.candle.open;
@@ -417,7 +400,6 @@ export function InteractiveStockChart({
 
                 return (
                   <g key={`candle-${pt.index}`}>
-                    {/* Wick */}
                     <line
                       x1={pt.x}
                       y1={pt.yHigh}
@@ -426,7 +408,6 @@ export function InteractiveStockChart({
                       stroke={candleColor}
                       strokeWidth={1}
                     />
-                    {/* Body */}
                     <rect
                       x={pt.x - 2.5}
                       y={bodyTop}
@@ -440,34 +421,28 @@ export function InteractiveStockChart({
             </g>
           )}
 
-          {/* Crosshair & Tooltip Trigger */}
           {activePoint && (
             <g>
-              {/* Vertical Crosshair Line */}
               <line
                 x1={activePoint.x}
                 y1={padding.top}
                 x2={activePoint.x}
                 y2={padding.top + chartHeight}
-                stroke="#6B7280"
+                stroke="#6D717B"
                 strokeWidth={1}
                 strokeDasharray="2 2"
                 opacity={0.8}
               />
-
-              {/* Horizontal Crosshair Line */}
               <line
                 x1={padding.left}
                 y1={activePoint.y}
                 x2={padding.left + chartWidth}
                 y2={activePoint.y}
-                stroke="#6B7280"
+                stroke="#6D717B"
                 strokeWidth={1}
                 strokeDasharray="2 2"
                 opacity={0.8}
               />
-
-              {/* Highlight Circle on Line */}
               <circle
                 cx={activePoint.x}
                 cy={activePoint.y}
@@ -476,16 +451,14 @@ export function InteractiveStockChart({
                 stroke={isPositive ? "#22c55e" : "#ef4444"}
                 strokeWidth={2}
               />
-
-              {/* Price Label on Right Y Axis */}
               <rect
                 x={padding.left + chartWidth + 2}
                 y={activePoint.y - 9}
                 width={44}
                 height={18}
                 rx={3}
-                fill="#1E2536"
-                stroke="#2B354C"
+                fill="#24262C"
+                stroke="#33363E"
                 strokeWidth={1}
               />
               <text
@@ -501,7 +474,6 @@ export function InteractiveStockChart({
             </g>
           )}
 
-          {/* Static Y-Axis Price Labels */}
           {[maxPrice, (maxPrice + minPrice) / 2, minPrice].map((priceVal, idx) => {
             const yPos = padding.top + (idx / 2) * chartHeight;
             return (
@@ -509,7 +481,7 @@ export function InteractiveStockChart({
                 key={`ylabel-${idx}`}
                 x={padding.left + chartWidth + 6}
                 y={yPos + 3}
-                fill="#6B7280"
+                fill="#717580"
                 fontSize={9}
                 fontFamily="monospace"
               >
@@ -519,10 +491,9 @@ export function InteractiveStockChart({
           })}
         </svg>
 
-        {/* Floating Tooltip matching the Reference UI */}
         {activePoint && (
           <div
-            className="absolute pointer-events-none z-30 rounded-xl bg-[#0F131D]/95 border border-[#232B3D] p-3 shadow-2xl backdrop-blur-md text-xs font-sans w-48 transition-all"
+            className="absolute pointer-events-none z-30 rounded-xl bg-[#1B1C20]/95 border border-[#2D2F36] p-3 shadow-2xl backdrop-blur-md text-xs font-sans w-48 transition-all"
             style={{
               left: Math.min(
                 Math.max(10, activePoint.x - 90),
@@ -531,8 +502,7 @@ export function InteractiveStockChart({
               top: Math.min(activePoint.y - 10, chartHeight - 110),
             }}
           >
-            {/* Header: Timestamp and Session */}
-            <div className="flex items-center justify-between text-[11px] text-neutral-400 pb-1.5 mb-1.5 border-b border-[#1A2130]">
+            <div className="flex items-center justify-between text-[11px] text-[#8E929B] pb-1.5 mb-1.5 border-b border-[#26282E]">
               <span className="font-medium text-white">
                 {new Date(activePoint.candle.date).toLocaleDateString("en-US", {
                   month: "short",
@@ -541,35 +511,34 @@ export function InteractiveStockChart({
                   minute: "2-digit",
                 })}
               </span>
-              <span className="text-[10px] text-neutral-400 px-1 py-0.5 rounded bg-[#182030]">
+              <span className="text-[10px] text-[#A1A4AC] px-1 py-0.5 rounded bg-[#24262C]">
                 Regular
               </span>
             </div>
 
-            {/* OHLCV metrics */}
             <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[11px] font-mono">
-              <span className="text-neutral-500">Close</span>
-              <span className="text-white font-semibold text-right">
+              <span className="text-[#717580]">Close</span>
+              <span className="text-white font-semibold text-right tabular-nums">
                 ${activePoint.candle.close.toFixed(2)}
               </span>
 
-              <span className="text-neutral-500">Open</span>
-              <span className="text-neutral-300 text-right">
+              <span className="text-[#717580]">Open</span>
+              <span className="text-[#A1A4AC] text-right tabular-nums">
                 ${activePoint.candle.open.toFixed(2)}
               </span>
 
-              <span className="text-neutral-500">High</span>
-              <span className="text-neutral-300 text-right">
+              <span className="text-[#717580]">High</span>
+              <span className="text-[#A1A4AC] text-right tabular-nums">
                 ${activePoint.candle.high.toFixed(2)}
               </span>
 
-              <span className="text-neutral-500">Low</span>
-              <span className="text-neutral-300 text-right">
+              <span className="text-[#717580]">Low</span>
+              <span className="text-[#A1A4AC] text-right tabular-nums">
                 ${activePoint.candle.low.toFixed(2)}
               </span>
 
-              <span className="text-neutral-500">Volume</span>
-              <span className="text-neutral-300 text-right">
+              <span className="text-[#717580]">Volume</span>
+              <span className="text-[#A1A4AC] text-right tabular-nums">
                 {formatCompactNumber(activePoint.candle.volume)}
               </span>
             </div>

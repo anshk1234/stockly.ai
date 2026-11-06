@@ -23,58 +23,58 @@ export function TopAssetsStrip({
   onRefresh,
 }: TopAssetsStripProps) {
   return (
-    <div className="w-full mb-8">
+    <div className="w-full mb-7">
       {/* Header with region dropdown */}
-      <div className="flex items-center justify-between mb-3.5">
-        <h2 className="text-sm font-semibold text-neutral-200">Top Assets</h2>
-        
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-xs font-semibold text-[#EDEDEE] tracking-tight">Top Assets</h2>
+
         <div className="flex items-center gap-2">
           {isLoading && (
-            <RefreshCw className="w-3.5 h-3.5 text-neutral-500 animate-spin" />
+            <RefreshCw className="w-3 h-3 text-[#6D717B] animate-spin" />
           )}
           <button
             onClick={onRegionToggle}
-            className="flex items-center gap-1 text-xs font-medium text-neutral-400 hover:text-white px-2 py-1 rounded bg-[#131722] hover:bg-[#1A202F] border border-[#222838] transition-colors"
+            className="flex items-center gap-1 text-[11px] font-medium text-[#8E929B] hover:text-[#EDEDEE] px-2 py-0.5 rounded bg-[#1B1C20] hover:bg-[#202227] border border-[#282A2F] transition-colors"
           >
             <span>{region}</span>
-            <ChevronDown className="w-3 h-3 text-neutral-500" />
+            <ChevronDown className="w-3 h-3 text-[#6D717B]" />
           </button>
         </div>
       </div>
 
       {/* Grid of Asset Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {assets.map((asset) => {
           const isPositive = asset.changePercent >= 0;
           return (
             <Link
               key={asset.symbol}
               href={`/stocks/${encodeURIComponent(asset.symbol)}`}
-              className="group relative flex flex-col justify-between bg-[#11151F] hover:bg-[#151A26] border border-[#1C2230] hover:border-neutral-700/60 rounded-xl p-3.5 transition-all duration-200 shadow-sm cursor-pointer"
+              className="group relative flex flex-col justify-between bg-[#1B1C20] hover:bg-[#202227] border border-[#26282E] hover:border-[#33363E] rounded-xl p-3.5 transition-all duration-150 shadow-sm cursor-pointer"
             >
               {/* Asset Title and Price */}
               <div>
-                <div className="text-xs font-medium text-neutral-300 truncate mb-1 group-hover:text-emerald-400 transition-colors">
+                <div className="text-xs font-medium text-[#989BA3] truncate mb-1 group-hover:text-emerald-400 transition-colors">
                   {asset.name}
                 </div>
-                <div className="flex items-baseline justify-between gap-2">
-                  <div className="text-base sm:text-lg font-bold text-white tracking-tight">
+                <div className="flex items-baseline justify-between gap-1.5">
+                  <div className="text-base sm:text-[17px] font-semibold text-white tracking-tight tabular-nums">
                     {formatPrice(asset.price, asset.currency)}
                   </div>
 
                   {/* Change badge */}
                   <div
-                    className={`flex items-center gap-0.5 text-xs font-semibold ${
+                    className={`flex items-center gap-0.5 text-xs font-medium tabular-nums ${
                       isPositive ? "text-emerald-400" : "text-rose-400"
                     }`}
                   >
                     {isPositive ? (
-                      <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" />
+                      <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.2]" />
                     ) : (
-                      <ArrowDownRight className="w-3.5 h-3.5 stroke-[2.5]" />
+                      <ArrowDownRight className="w-3.5 h-3.5 stroke-[2.2]" />
                     )}
                     <span>{formatPercent(asset.changePercent)}</span>
-                    <span className="text-[10px] opacity-75 font-normal ml-0.5">
+                    <span className="text-[10px] text-[#717580] ml-0.5">
                       {formatChange(asset.change, asset.currency)}
                     </span>
                   </div>
@@ -82,7 +82,7 @@ export function TopAssetsStrip({
               </div>
 
               {/* Sparkline Canvas Area */}
-              <div className="mt-3 w-full h-11">
+              <div className="mt-2.5 w-full h-11">
                 <SparklineChart
                   data={asset.sparkline}
                   isPositive={isPositive}

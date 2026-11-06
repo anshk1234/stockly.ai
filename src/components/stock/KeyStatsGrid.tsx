@@ -53,14 +53,14 @@ export function KeyStatsGrid({ stock }: KeyStatsGridProps) {
   ];
 
   return (
-    <div className="w-full mt-6 pt-5 border-t border-[#1C2230]">
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-y-4 gap-x-6">
+    <div className="w-full mt-5 pt-4 border-t border-[#23252A]">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-y-3.5 gap-x-5">
         {stats.map((stat, i) => (
           <div key={i} className="flex flex-col">
-            <span className="text-[11px] font-medium text-neutral-400 mb-1">
+            <span className="text-[11px] font-medium text-[#717580] mb-0.5">
               {stat.label}
             </span>
-            <span className="text-sm font-semibold text-white font-mono">
+            <span className="text-xs sm:text-sm font-semibold text-white font-mono tabular-nums">
               {stat.value}
             </span>
           </div>
