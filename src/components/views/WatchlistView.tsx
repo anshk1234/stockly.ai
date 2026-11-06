@@ -1,20 +1,18 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Link from "next/link";
-import { SlidersHorizontal, ArrowUpRight, ArrowDownRight, RefreshCw, Calendar, ChevronDown } from "lucide-react";
+import { SlidersHorizontal } from "lucide-react";
 import { AssetQuote, TimeRange, CandlePoint } from "@/lib/types";
 import { formatPrice, formatPercent } from "@/lib/utils";
 import { PredictionWidget } from "@/components/PredictionWidget";
 import { InteractiveStockChart } from "@/components/stock/InteractiveStockChart";
+import { TwoColumnLayout, Card, SectionTitle } from "@/components/ui/layout";
 
 interface WatchlistViewProps {
   watchlist: AssetQuote[];
   isLoadingWatchlist: boolean;
   onOpenSearch: () => void;
 }
-
-const RANGES: TimeRange[] = ["1D", "5D", "1M", "6M", "YTD", "1Y", "5Y", "MAX"];
 
 export function WatchlistView({
   watchlist,
@@ -52,57 +50,58 @@ export function WatchlistView({
     loadChart();
   }, [activeSymbol, currentRange]);
 
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-      {/* Left Column: Watchlist Table & Watchlist Movers Chart */}
-      <section className="lg:col-span-8 flex flex-col gap-5">
-        {/* Top Header */}
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs font-semibold text-[#EDEDEE] tracking-tight">My Watchlist</h2>
-          <button
-            onClick={onOpenSearch}
-            className="flex items-center gap-1.5 text-xs text-[#8E929B] hover:text-white transition-colors"
-          >
-            <SlidersHorizontal className="w-3 h-3" />
-            <span>Manage Watchlist</span>
-          </button>
-        </div>
+  const mainContent = (
+    <div className="flex flex-col gap-[var(--space-6)]">
+      {/* Top Section */}
+      <div>
+        <SectionTitle
+          action={
+            <button
+              onClick={onOpenSearch}
+              className="flex items-center gap-1.5 text-[var(--text-xs)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors font-[var(--weight-regular)]"
+            >
+              <SlidersHorizontal className="w-3 h-3" />
+              <span>Manage Watchlist</span>
+            </button>
+          }
+        >
+          My Watchlist
+        </SectionTitle>
 
         {/* Watchlist Digest Card */}
-        <div className="p-4 rounded-xl bg-[#1B1C20] border border-[#26282E]">
-          {/* Narrative Paragraph */}
-          <div className="text-xs text-[#989BA3] leading-relaxed mb-4">
+        <Card>
+          <div className="p-[16px] text-[var(--text-xs)] text-[var(--text-muted)] leading-relaxed border-b border-[var(--border)]">
             <p className="mb-2">
-              <span className="text-white font-medium">Microsoft </span>
-              <span className="text-rose-400 font-semibold">↘ 3.58% </span>
+              <span className="text-[var(--text-primary)] font-[var(--weight-medium)]">Microsoft </span>
+              <span className="text-[var(--negative)] font-[var(--weight-medium)]">↘ 3.58% </span>
               is the primary holding in focus. It closed down 3.58% at $535.93, giving back part of the prior session&apos;s 6.7% surge. Shares traded between $532.70 and $557.62 on volume of about 41.6M, sitting just below the 52-week high with a market cap near $3.98T.
             </p>
             <p>
               The decline is part of an AI-led tech sector rotation. Fundamentals remain solid: Azure enterprise cloud revenue grew 48%, the commercial backlog is $677B, and analyst consensus remains firmly in overweight territory.
             </p>
+
+            <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)] pt-3 mt-3 border-t border-[var(--border)]">
+              <span className="px-1.5 py-0.5 rounded bg-[var(--bg-card-hover)] text-[var(--text-muted)] text-[10px]">
+                15 sources
+              </span>
+              <span>Updated just now</span>
+            </div>
           </div>
 
-          <div className="flex items-center justify-between text-[11px] text-[#6D717B] pt-2 border-t border-[#23252A] mb-4">
-            <span className="px-1.5 py-0.5 rounded bg-[#24262C] text-[#8E929B] text-[10px]">
-              15 sources
-            </span>
-            <span>Updated just now</span>
-          </div>
-
-          {/* Multi-Period Performance Table */}
+          {/* Multi-Period Performance Table inside the same card */}
           <div className="overflow-x-auto no-scrollbar">
-            <table className="w-full text-xs">
+            <table className="w-full text-[var(--text-xs)]">
               <thead>
-                <tr className="text-[#6D717B] text-[11px] border-b border-[#23252A]">
-                  <th className="text-left pb-2 font-medium">Asset</th>
-                  <th className="text-right pb-2 font-medium">Price</th>
-                  <th className="text-right pb-2 font-medium">1D</th>
-                  <th className="text-right pb-2 font-medium">5D</th>
-                  <th className="text-right pb-2 font-medium">1M</th>
-                  <th className="text-right pb-2 font-medium">6M</th>
+                <tr className="text-[var(--text-muted)] text-[11px] border-b border-[var(--border)]">
+                  <th className="text-left px-[16px] py-[10px] font-[var(--weight-medium)]">Asset</th>
+                  <th className="text-right px-[16px] py-[10px] font-[var(--weight-medium)]">Price</th>
+                  <th className="text-right px-[16px] py-[10px] font-[var(--weight-medium)]">1D</th>
+                  <th className="text-right px-[16px] py-[10px] font-[var(--weight-medium)]">5D</th>
+                  <th className="text-right px-[16px] py-[10px] font-[var(--weight-medium)]">1M</th>
+                  <th className="text-right px-[16px] py-[10px] font-[var(--weight-medium)]">6M</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#23252A]">
+              <tbody className="divide-y divide-[var(--border)]">
                 {watchlist.map((stock) => {
                   const isSelected = selectedStock?.symbol === stock.symbol;
                   return (
@@ -110,40 +109,40 @@ export function WatchlistView({
                       key={stock.symbol}
                       onClick={() => setSelectedStock(stock)}
                       className={`cursor-pointer transition-colors ${
-                        isSelected ? "bg-[#22242A]" : "hover:bg-[#1E2025]"
+                        isSelected ? "bg-[var(--bg-card-hover)]" : "hover:bg-[var(--bg-card-hover)]"
                       }`}
                     >
-                      <td className="py-2.5">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded bg-[#24262C] flex items-center justify-center font-bold text-[10px] text-white">
+                      <td className="px-[16px] py-[12px]">
+                        <div className="flex items-center gap-[var(--space-2)]">
+                          <div className="w-6 h-6 rounded bg-[var(--bg-card-hover)] flex items-center justify-center font-[var(--weight-medium)] text-[10px] text-[var(--text-primary)]">
                             {stock.symbol.slice(0, 3)}
                           </div>
                           <div>
-                            <div className="font-medium text-white">{stock.name}</div>
-                            <div className="text-[10px] text-[#717580] font-mono">{stock.symbol}</div>
+                            <div className="font-[var(--weight-medium)] text-[var(--text-primary)]">{stock.name}</div>
+                            <div className="text-[10px] text-[var(--text-muted)]">{stock.symbol}</div>
                           </div>
                         </div>
                       </td>
-                      <td className="py-2.5 text-right font-mono tabular-nums text-white font-medium">
+                      <td className="px-[16px] py-[12px] text-right font-[var(--weight-medium)] tabular-nums text-[var(--text-primary)]">
                         {formatPrice(stock.price, stock.currency)}
                       </td>
-                      <td className={`py-2.5 text-right font-mono tabular-nums ${
-                        (stock.perf1D ?? stock.changePercent) >= 0 ? "text-emerald-400" : "text-rose-400"
+                      <td className={`px-[16px] py-[12px] text-right font-[var(--weight-medium)] tabular-nums ${
+                        (stock.perf1D ?? stock.changePercent) >= 0 ? "text-[var(--positive)]" : "text-[var(--negative)]"
                       }`}>
                         {formatPercent(stock.perf1D ?? stock.changePercent)}
                       </td>
-                      <td className={`py-2.5 text-right font-mono tabular-nums ${
-                        (stock.perf5D ?? 2.03) >= 0 ? "text-emerald-400" : "text-rose-400"
+                      <td className={`px-[16px] py-[12px] text-right font-[var(--weight-medium)] tabular-nums ${
+                        (stock.perf5D ?? 2.03) >= 0 ? "text-[var(--positive)]" : "text-[var(--negative)]"
                       }`}>
                         {formatPercent(stock.perf5D ?? 2.03)}
                       </td>
-                      <td className={`py-2.5 text-right font-mono tabular-nums ${
-                        (stock.perf1M ?? 1.25) >= 0 ? "text-emerald-400" : "text-rose-400"
+                      <td className={`px-[16px] py-[12px] text-right font-[var(--weight-medium)] tabular-nums ${
+                        (stock.perf1M ?? 1.25) >= 0 ? "text-[var(--positive)]" : "text-[var(--negative)]"
                       }`}>
                         {formatPercent(stock.perf1M ?? 1.25)}
                       </td>
-                      <td className={`py-2.5 text-right font-mono tabular-nums ${
-                        (stock.perf6M ?? 29.46) >= 0 ? "text-emerald-400" : "text-rose-400"
+                      <td className={`px-[16px] py-[12px] text-right font-[var(--weight-medium)] tabular-nums ${
+                        (stock.perf6M ?? 29.46) >= 0 ? "text-[var(--positive)]" : "text-[var(--negative)]"
                       }`}>
                         {formatPercent(stock.perf6M ?? 29.46)}
                       </td>
@@ -153,38 +152,44 @@ export function WatchlistView({
               </tbody>
             </table>
           </div>
-        </div>
+        </Card>
+      </div>
 
-        {/* Watchlist Movers Interactive Chart */}
-        <div>
-          <div className="flex items-center justify-between mb-2.5">
-            <h2 className="text-xs font-semibold text-[#EDEDEE] tracking-tight">Watchlist Movers</h2>
-            <div className="text-[11px] text-[#8E929B] font-mono">
-              Displaying: <span className="text-emerald-400 font-semibold">{activeSymbol}</span>
+      {/* Watchlist Movers Interactive Chart */}
+      <div>
+        <SectionTitle
+          action={
+            <div className="text-[var(--text-xs)] text-[var(--text-muted)] font-[var(--weight-regular)]">
+              Displaying: <span className="text-[var(--positive)] font-[var(--weight-medium)]">{activeSymbol}</span>
             </div>
-          </div>
+          }
+        >
+          Watchlist Movers
+        </SectionTitle>
 
-          {selectedStock && (
-            <InteractiveStockChart
-              symbol={selectedStock.symbol}
-              currency={selectedStock.currency}
-              initialPrice={selectedStock.price}
-              initialChange={selectedStock.change}
-              initialChangePercent={selectedStock.changePercent}
-              previousClose={previousClose || selectedStock.price}
-              candles={candles}
-              currentRange={currentRange}
-              onRangeChange={(r) => setCurrentRange(r)}
-              isLoading={isLoadingChart}
-            />
-          )}
-        </div>
-      </section>
-
-      {/* Right Column: Prediction Markets */}
-      <aside className="lg:col-span-4 flex flex-col gap-6">
-        <PredictionWidget />
-      </aside>
+        {selectedStock && (
+          <InteractiveStockChart
+            symbol={selectedStock.symbol}
+            currency={selectedStock.currency}
+            initialPrice={selectedStock.price}
+            initialChange={selectedStock.change}
+            initialChangePercent={selectedStock.changePercent}
+            previousClose={previousClose || selectedStock.price}
+            candles={candles}
+            currentRange={currentRange}
+            onRangeChange={(r) => setCurrentRange(r)}
+            isLoading={isLoadingChart}
+          />
+        )}
+      </div>
     </div>
   );
+
+  const sidebarContent = (
+    <div className="flex flex-col gap-[var(--space-6)]">
+      <PredictionWidget />
+    </div>
+  );
+
+  return <TwoColumnLayout main={mainContent} sidebar={sidebarContent} />;
 }

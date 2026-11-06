@@ -59,8 +59,8 @@ export function SparklineChart({
   const lastPoint = points[points.length - 1];
   const areaD = `${pathD} L ${lastPoint.x.toFixed(1)},${height} L 0,${height} Z`;
 
-  const strokeColor = isPositive ? "#22c55e" : "#ef4444";
-  const stopColor = isPositive ? "#10b981" : "#f43f5e";
+  const strokeColor = isPositive ? "var(--positive, #3ecf8e)" : "var(--negative, #f2555a)";
+  const stopColor = isPositive ? "var(--positive, #3ecf8e)" : "var(--negative, #f2555a)";
 
   return (
     <div className={`relative overflow-hidden ${className}`}>

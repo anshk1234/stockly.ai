@@ -14,6 +14,33 @@ interface SubHeaderProps {
 
 const TABS: DashboardTab[] = ["Crypto", "Predictions", "Watchlist"];
 
+// Crisp vector flags to avoid Windows OS emoji font fallback rendering as "IN" / "US" text
+function IndiaFlagIcon({ className = "w-4 h-3" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="24" height="16" rx="2" fill="#FFFFFF" />
+      <rect width="24" height="5.33" fill="#FF9933" />
+      <rect y="10.67" width="24" height="5.33" fill="#138808" />
+      <circle cx="12" cy="8" r="2.2" stroke="#000080" strokeWidth="0.8" fill="none" />
+      <circle cx="12" cy="8" r="0.6" fill="#000080" />
+    </svg>
+  );
+}
+
+function USFlagIcon({ className = "w-4 h-3" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="24" height="16" rx="2" fill="#B22234" />
+      <rect y="2.46" width="24" height="1.23" fill="#FFFFFF" />
+      <rect y="4.92" width="24" height="1.23" fill="#FFFFFF" />
+      <rect y="7.38" width="24" height="1.23" fill="#FFFFFF" />
+      <rect y="9.84" width="24" height="1.23" fill="#FFFFFF" />
+      <rect y="12.30" width="24" height="1.23" fill="#FFFFFF" />
+      <rect width="10" height="8.6" fill="#3C3B6E" />
+    </svg>
+  );
+}
+
 export function SubHeader({
   region,
   onRegionChange,
@@ -24,10 +51,10 @@ export function SubHeader({
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   return (
-    <div className="w-full border-b border-[#23252A] bg-[#141517] px-4 lg:px-8 py-2">
-      <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row md:items-center justify-between gap-2.5 overflow-x-auto no-scrollbar">
+    <div className="w-full border-b border-[var(--border)] bg-[var(--bg-page)]">
+      <div className="w-full max-w-[var(--container-max)] mx-auto px-[var(--page-gutter)] py-2 flex flex-col md:flex-row md:items-center justify-between gap-3 overflow-x-auto no-scrollbar">
         {/* Navigation Tabs and Market Selector */}
-        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           {/* Region Dropdown */}
           <div className="relative">
             <button
@@ -35,30 +62,34 @@ export function SubHeader({
                 setDropdownOpen(!dropdownOpen);
                 onTabChange("Markets");
               }}
-              className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+              className={`flex items-center gap-1.5 px-2 py-1 text-[13px] font-[var(--weight-medium)] rounded-md transition-colors ${
                 activeTab === "Markets"
-                  ? "text-[#EDEDEE] border-b border-white pb-1.5 -mb-2"
-                  : "text-[#8E929B] hover:text-[#EDEDEE]"
+                  ? "text-[var(--text-primary)] border-b-2 border-[var(--text-primary)] pb-1 -mb-2"
+                  : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
               }`}
             >
-              <span>{region === "IN" ? "🇮🇳 India Markets" : "🇺🇸 US Markets"}</span>
-              <ChevronDown className="w-3.5 h-3.5 text-[#8E929B]" />
+              {region === "IN" ? <IndiaFlagIcon /> : <USFlagIcon />}
+              <span>{region === "IN" ? "India Markets" : "US Markets"}</span>
+              <ChevronDown className="w-3.5 h-3.5 text-[var(--text-muted)]" />
             </button>
 
             {dropdownOpen && (
-              <div className="absolute left-0 mt-3 w-44 rounded-xl bg-[#1B1C20] border border-[#2B2D34] shadow-2xl py-1 z-50">
+              <div className="absolute left-0 mt-2 w-44 rounded-[var(--radius-card)] bg-[var(--bg-card)] border border-[var(--border)] shadow-xl py-1 z-50">
                 <button
                   onClick={() => {
                     onRegionChange("IN");
                     onTabChange("Markets");
                     setDropdownOpen(false);
                   }}
-                  className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-[#23252B] transition-colors ${
-                    region === "IN" ? "text-emerald-400 font-medium" : "text-[#A1A4AC]"
+                  className={`w-full text-left px-3 py-2 text-[12px] flex items-center justify-between hover:bg-[var(--bg-card-hover)] transition-colors ${
+                    region === "IN" ? "text-[var(--positive)] font-[var(--weight-medium)]" : "text-[var(--text-muted)]"
                   }`}
                 >
-                  <span>🇮🇳 India Markets</span>
-                  {region === "IN" && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>}
+                  <span className="flex items-center gap-2">
+                    <IndiaFlagIcon />
+                    <span>India Markets</span>
+                  </span>
+                  {region === "IN" && <span className="w-1.5 h-1.5 rounded-full bg-[var(--positive)]"></span>}
                 </button>
                 <button
                   onClick={() => {
@@ -66,31 +97,34 @@ export function SubHeader({
                     onTabChange("Markets");
                     setDropdownOpen(false);
                   }}
-                  className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-[#23252B] transition-colors ${
-                    region === "US" ? "text-emerald-400 font-medium" : "text-[#A1A4AC]"
+                  className={`w-full text-left px-3 py-2 text-[12px] flex items-center justify-between hover:bg-[var(--bg-card-hover)] transition-colors ${
+                    region === "US" ? "text-[var(--positive)] font-[var(--weight-medium)]" : "text-[var(--text-muted)]"
                   }`}
                 >
-                  <span>🇺🇸 US Markets</span>
-                  {region === "US" && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>}
+                  <span className="flex items-center gap-2">
+                    <USFlagIcon />
+                    <span>US Markets</span>
+                  </span>
+                  {region === "US" && <span className="w-1.5 h-1.5 rounded-full bg-[var(--positive)]"></span>}
                 </button>
               </div>
             )}
           </div>
 
-          <div className="h-3.5 w-[1px] bg-[#2B2D33] mx-1.5 hidden sm:block"></div>
+          <div className="h-3.5 w-[1px] bg-[var(--border)] mx-1 hidden sm:block"></div>
 
-          {/* Filter Tabs: Crypto, Predictions, Watchlist ONLY */}
-          <div className="flex items-center gap-1 text-xs text-[#8E929B]">
+          {/* Filter Tabs */}
+          <div className="flex items-center gap-1 text-[13px] text-[var(--text-muted)]">
             {TABS.map((tab) => {
               const isActive = activeTab === tab;
               return (
                 <button
                   key={tab}
                   onClick={() => onTabChange(tab)}
-                  className={`px-2.5 py-1 rounded-md transition-colors whitespace-nowrap ${
+                  className={`px-2 py-1 rounded-md transition-colors whitespace-nowrap font-[var(--weight-medium)] ${
                     isActive
-                      ? "text-[#EDEDEE] font-medium border-b border-white pb-1.5 -mb-2"
-                      : "hover:text-[#EDEDEE]"
+                      ? "text-[var(--text-primary)] border-b-2 border-[var(--text-primary)] pb-1 -mb-2"
+                      : "hover:text-[var(--text-primary)]"
                   }`}
                 >
                   {tab}
@@ -101,33 +135,31 @@ export function SubHeader({
         </div>
 
         {/* Dynamic Sentiment & Market Status */}
-        <div className="flex items-center gap-2.5 shrink-0 self-end md:self-auto text-xs">
+        <div className="flex items-center gap-3 shrink-0 self-end md:self-auto text-[11.5px]">
           {/* Sentiment Bars */}
-          <div className="flex items-center gap-1.5 text-emerald-400 font-medium">
+          <div className="flex items-center gap-1.5 text-[var(--positive)] font-[var(--weight-medium)]">
             <div className="flex items-center gap-0.5">
               {[...Array(9)].map((_, i) => (
                 <div
                   key={i}
                   className={`w-0.5 h-2.5 rounded-full ${
                     i < (sentiment?.score ?? 7)
-                      ? "bg-emerald-400"
-                      : "bg-[#282A30]"
+                      ? "bg-[var(--positive)]"
+                      : "bg-[var(--bg-card-hover)]"
                   }`}
                 />
               ))}
             </div>
-            <span className="text-[11px] tracking-tight">
-              {sentiment?.description || "Upbeat Sentiment"}
+            <span className="tracking-tight">
+              {sentiment?.description || "Bullish Sentiment"}
             </span>
           </div>
 
-          <span className="text-[#3A3D46]">•</span>
-
-          {/* Market Clock & Status */}
-          <div className="flex items-center gap-1.5 text-[#7F838D] text-[11px]">
+          {/* Market Clock & Status (clean separator without stray bullet) */}
+          <div className="flex items-center gap-1.5 text-[var(--text-muted)]">
             <span
               className={`w-1.5 h-1.5 rounded-full ${
-                sentiment?.marketOpen ? "bg-emerald-400" : "bg-[#545762]"
+                sentiment?.marketOpen ? "bg-[var(--positive)]" : "bg-[var(--text-muted)]"
               }`}
             />
             <span>

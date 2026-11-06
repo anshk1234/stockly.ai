@@ -5,6 +5,8 @@ import Link from "next/link";
 import { SlidersHorizontal, ChevronRight } from "lucide-react";
 import { AssetQuote } from "@/lib/types";
 import { formatPrice, formatPercent } from "@/lib/utils";
+import { Card, CardRow, SectionTitle } from "@/components/ui/layout";
+import { TickerLogo } from "@/components/ui/TickerLogo";
 
 interface WatchlistWidgetProps {
   items: AssetQuote[];
@@ -18,30 +20,32 @@ export function WatchlistWidget({
   onManageWatchlist,
 }: WatchlistWidgetProps) {
   return (
-    <div className="w-full mb-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
+    <div className="w-full">
+      {/* Section Title */}
+      <SectionTitle
+        action={
+          <button
+            onClick={onManageWatchlist}
+            className="p-1 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] transition-colors"
+            title="Manage Watchlist"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+          </button>
+        }
+      >
         <button
           onClick={onManageWatchlist}
-          className="flex items-center gap-1 text-xs font-semibold text-[#EDEDEE] hover:text-white group transition-colors tracking-tight"
+          className="flex items-center gap-1 hover:text-[var(--text-primary)] group transition-colors"
         >
           <span>Watchlist</span>
-          <ChevronRight className="w-3.5 h-3.5 text-[#6D717B] group-hover:text-white transition-colors" />
+          <ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" />
         </button>
+      </SectionTitle>
 
-        <button
-          onClick={onManageWatchlist}
-          className="p-1 rounded text-[#6D717B] hover:text-[#EDEDEE] hover:bg-[#202227] transition-colors"
-          title="Filter / Configure Watchlist"
-        >
-          <SlidersHorizontal className="w-3.5 h-3.5" />
-        </button>
-      </div>
-
-      {/* Stock Cards */}
-      <div className="flex flex-col gap-2">
+      {/* ONE single bordered card with compact rows and hairline dividers */}
+      <Card>
         {isLoading && items.length === 0 ? (
-          <div className="p-4 text-center text-xs text-[#717580] bg-[#1B1C20] rounded-xl border border-[#26282E]">
+          <div className="px-[16px] py-[14px] text-center text-[var(--text-xs)] text-[var(--text-muted)]">
             Loading watchlist...
           </div>
         ) : (
@@ -52,43 +56,30 @@ export function WatchlistWidget({
               <Link
                 key={stock.symbol}
                 href={`/stocks/${encodeURIComponent(stock.symbol)}`}
-                className="flex items-center justify-between p-3 rounded-xl bg-[#1B1C20] hover:bg-[#202227] border border-[#26282E] hover:border-[#33363E] transition-all cursor-pointer group"
+                className="flex items-center justify-between px-[16px] py-[14px] border-b border-[var(--border)] last:border-b-0 hover:bg-[var(--bg-card-hover)] transition-colors cursor-pointer group"
               >
-                {/* Brand / Logo + Ticker Info */}
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-[#24262C] border border-[#2E3138] flex items-center justify-center font-bold text-xs text-[#EDEDEE] shrink-0">
-                    {stock.symbol === "MSFT" ? (
-                      <div className="grid grid-cols-2 gap-0.5 p-1 w-4 h-4">
-                        <div className="bg-[#F25022] rounded-[1px]"></div>
-                        <div className="bg-[#7FBA00] rounded-[1px]"></div>
-                        <div className="bg-[#00A4EF] rounded-[1px]"></div>
-                        <div className="bg-[#FFB900] rounded-[1px]"></div>
-                      </div>
-                    ) : (
-                      <span className="text-[10px] text-[#A1A4AC] font-mono">
-                        {stock.symbol.slice(0, 3)}
-                      </span>
-                    )}
-                  </div>
+                {/* Brand Logo & Ticker */}
+                <div className="flex items-center gap-[var(--space-3)]">
+                  <TickerLogo symbol={stock.symbol} name={stock.name} size={28} />
 
                   <div>
-                    <div className="text-xs font-medium text-white group-hover:text-emerald-400 transition-colors leading-tight">
+                    <div className="text-[13px] font-[var(--weight-medium)] text-[var(--text-primary)] group-hover:text-[var(--positive)] transition-colors leading-tight">
                       {stock.name}
                     </div>
-                    <div className="text-[10px] text-[#717580] font-mono uppercase mt-0.5">
-                      {stock.symbol} · {stock.exchange || "NASDAQ"}
+                    <div className="text-[11px] text-[var(--text-muted)] uppercase mt-0.5">
+                      {stock.symbol} · {(stock.exchange || "NASDAQ").replace("NASDAQGS", "NASDAQ").replace("NSI", "NSE")}
                     </div>
                   </div>
                 </div>
 
-                {/* Price & Change Pill */}
-                <div className="text-right">
-                  <div className="text-xs font-semibold text-white font-mono tabular-nums">
-                    {formatPrice(stock.price, stock.currency)}
+                {/* Price & Change */}
+                <div className="text-right shrink-0">
+                  <div className="text-[13px] font-[var(--weight-medium)] text-[var(--text-primary)] tabular-nums">
+                    {formatPrice(stock.price, stock.currency, stock.symbol)}
                   </div>
                   <div
-                    className={`text-[11px] font-medium font-mono tabular-nums mt-0.5 ${
-                      isPositive ? "text-emerald-400" : "text-rose-400"
+                    className={`text-[11.5px] font-[var(--weight-medium)] tabular-nums mt-0.5 ${
+                      isPositive ? "text-[var(--positive)]" : "text-[var(--negative)]"
                     }`}
                   >
                     {formatPercent(stock.changePercent)}
@@ -98,7 +89,7 @@ export function WatchlistWidget({
             );
           })
         )}
-      </div>
+      </Card>
     </div>
   );
 }

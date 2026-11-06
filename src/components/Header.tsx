@@ -2,60 +2,53 @@
 
 import React from "react";
 import Link from "next/link";
-import { Search, Monitor, BellRing, Share2, Menu, Sparkles } from "lucide-react";
+import { Monitor, BellRing, Share2, Menu, Sparkles } from "lucide-react";
+import { SearchDropdown } from "./SearchDropdown";
 
 interface HeaderProps {
-  onOpenSearch: () => void;
+  onOpenSearch?: () => void;
+  onSelectSymbol?: (symbol: string) => void;
 }
 
-export function Header({ onOpenSearch }: HeaderProps) {
+export function Header({ onSelectSymbol }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-[#23252A] bg-[#141517]/95 backdrop-blur-md px-4 lg:px-6 py-2.5">
-      <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-4">
-        {/* Brand Logo */}
-        <Link href="/" className="flex items-center gap-2 cursor-pointer group">
-          <div className="w-6 h-6 rounded flex items-center justify-center text-emerald-400">
-            <Sparkles className="w-4 h-4" />
-          </div>
-          <span className="font-medium text-sm sm:text-base tracking-tight text-[#EDEDEE] flex items-center gap-1.5">
-            Stockly <span className="text-[#8E929B] font-normal text-xs">Finance</span>
-          </span>
-        </Link>
-
-        {/* Global Search Bar */}
-        <div className="flex-1 max-w-xl mx-2">
-          <button
-            onClick={onOpenSearch}
-            className="w-full flex items-center justify-between px-3.5 py-1.5 text-xs text-[#8E929B] bg-[#1B1C20] hover:bg-[#202227] border border-[#282A2F] hover:border-[#353840] rounded-lg transition-all shadow-sm group"
-          >
-            <div className="flex items-center gap-2.5">
-              <Search className="w-3.5 h-3.5 text-[#6D717B] group-hover:text-[#A1A4AC] transition-colors" />
-              <span className="text-[#8E929B] text-xs">Search for stocks, crypto, and more...</span>
+    <header className="w-full border-b border-[var(--border)] bg-[var(--bg-page)]/95 backdrop-blur-md sticky top-0 z-40">
+      <div className="w-full px-6 lg:px-8 py-2.5 grid grid-cols-[auto_1fr_auto] md:grid-cols-[1fr_auto_1fr] items-center gap-4">
+        {/* Col 1 (Left): Brand Logo */}
+        <div className="flex items-center justify-start shrink-0">
+          <Link href="/" className="flex items-center gap-2 group">
+            <div className="w-6 h-6 rounded flex items-center justify-center text-[var(--positive)]">
+              <Sparkles className="w-4 h-4" />
             </div>
-            <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono text-[#6D717B] bg-[#22242A] border border-[#2B2D34] rounded">
-              ⌘K
-            </kbd>
-          </button>
+            <span className="font-[var(--weight-medium)] text-[14px] text-[var(--text-primary)] tracking-tight whitespace-nowrap">
+              Stockly <span className="text-[var(--text-muted)] font-[var(--weight-regular)]">Finance</span>
+            </span>
+          </Link>
         </div>
 
-        {/* Action Controls */}
-        <div className="flex items-center gap-1 sm:gap-2 text-[#A1A4AC] text-xs">
-          <button className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-[#1E1F24] hover:text-[#EDEDEE] transition-colors font-medium">
-            <Monitor className="w-3.5 h-3.5 text-[#7F838D]" />
+        {/* Col 2 (Center): Embedded Active Search Bar with Inline Popover Dropdown */}
+        <div className="w-full max-w-[460px] mx-auto">
+          <SearchDropdown onSelectSymbol={onSelectSymbol} />
+        </div>
+
+        {/* Col 3 (Right): Action Controls */}
+        <div className="flex items-center justify-end gap-1.5 sm:gap-2 text-[var(--text-muted)] text-[12px] shrink-0">
+          <button className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)] transition-colors font-[var(--weight-medium)] whitespace-nowrap">
+            <Monitor className="w-3.5 h-3.5" />
             <span>Computer for Finance</span>
           </button>
 
-          <button className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-[#1E1F24] hover:text-[#EDEDEE] transition-colors font-medium">
-            <BellRing className="w-3.5 h-3.5 text-[#7F838D]" />
+          <button className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)] transition-colors font-[var(--weight-medium)] whitespace-nowrap">
+            <BellRing className="w-3.5 h-3.5" />
             <span>Price Alert</span>
           </button>
 
-          <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-[#1E1F24] hover:text-[#EDEDEE] transition-colors font-medium">
-            <Share2 className="w-3.5 h-3.5 text-[#7F838D]" />
+          <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)] transition-colors font-[var(--weight-medium)] whitespace-nowrap">
+            <Share2 className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Share</span>
           </button>
 
-          <button className="p-1.5 rounded-lg hover:bg-[#1E1F24] text-[#7F838D] hover:text-[#EDEDEE] transition-colors">
+          <button className="p-1.5 rounded-lg hover:bg-[var(--bg-card-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
             <Menu className="w-4 h-4" />
           </button>
         </div>

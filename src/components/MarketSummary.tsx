@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { ChevronDown, ChevronUp, ExternalLink, Clock } from "lucide-react";
 import { NewsItem } from "@/lib/types";
 import { formatTimeAgo } from "@/lib/utils";
+import { Card, SectionTitle } from "@/components/ui/layout";
 
 interface MarketSummaryProps {
   news: NewsItem[];
@@ -32,25 +33,28 @@ export function MarketSummary({
 
   return (
     <div className="w-full">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-xs font-semibold text-[#EDEDEE] tracking-tight">Market Summary</h2>
-        <div className="flex items-center gap-1.5 text-[11px] text-[#717580]">
-          <Clock className="w-3 h-3" />
-          <span>
-            {lastUpdated ? `Updated ${formatTimeAgo(lastUpdated)}` : "Fetching updates..."}
-          </span>
-        </div>
-      </div>
+      {/* Section Title */}
+      <SectionTitle
+        action={
+          <div className="flex items-center gap-1.5 text-[var(--text-xs)] text-[var(--text-muted)] font-[var(--weight-regular)]">
+            <Clock className="w-3 h-3" />
+            <span>
+              {lastUpdated ? `Updated ${formatTimeAgo(lastUpdated)}` : "Fetching updates..."}
+            </span>
+          </div>
+        }
+      >
+        Market Summary
+      </SectionTitle>
 
-      {/* Accordion List */}
-      <div className="flex flex-col gap-1.5">
+      {/* Grouped in ONE bordered card with hairline dividers */}
+      <Card>
         {isLoading && news.length === 0 ? (
-          <div className="p-6 text-center text-xs text-[#717580] bg-[#1B1C20] rounded-xl border border-[#26282E]">
+          <div className="px-[16px] py-[14px] text-center text-[var(--text-xs)] text-[var(--text-muted)]">
             Fetching live market intelligence from Yahoo Finance...
           </div>
         ) : news.length === 0 ? (
-          <div className="p-5 text-center text-xs text-[#717580] bg-[#1B1C20] rounded-xl border border-[#26282E]">
+          <div className="px-[16px] py-[14px] text-center text-[var(--text-xs)] text-[var(--text-muted)]">
             No market updates available at the moment.
           </div>
         ) : (
@@ -60,36 +64,36 @@ export function MarketSummary({
             return (
               <div
                 key={item.id}
-                className="bg-[#1B1C20] border border-[#26282E] rounded-xl transition-all duration-150 overflow-hidden"
+                className="border-b border-[var(--border)] last:border-b-0 transition-colors"
               >
                 {/* Header row */}
                 <button
                   onClick={() => toggleItem(item.id)}
-                  className="w-full flex items-center justify-between p-3 text-left hover:bg-[#202227] transition-colors"
+                  className="w-full flex items-center justify-between px-[16px] py-[14px] text-left hover:bg-[var(--bg-card-hover)] transition-colors"
                 >
-                  <span className="text-xs font-medium text-[#EDEDEE] hover:text-white transition-colors pr-2">
+                  <span className="text-[var(--text-sm)] font-[var(--weight-medium)] text-[var(--text-primary)] pr-[var(--space-2)]">
                     {item.title}
                   </span>
 
-                  <div className="text-[#6D717B] shrink-0">
+                  <div className="text-[var(--text-muted)] shrink-0">
                     {isExpanded ? (
-                      <ChevronUp className="w-4 h-4 text-[#A1A4AC]" />
+                      <ChevronUp className="w-4 h-4 text-[var(--text-primary)]" />
                     ) : (
-                      <ChevronDown className="w-4 h-4 text-[#6D717B]" />
+                      <ChevronDown className="w-4 h-4 text-[var(--text-muted)]" />
                     )}
                   </div>
                 </button>
 
                 {/* Expanded content */}
                 {isExpanded && (
-                  <div className="px-3.5 pb-3.5 pt-1 border-t border-[#23252A] text-xs text-[#989BA3] leading-relaxed bg-[#16171B]">
-                    <p className="mb-2.5">
+                  <div className="px-[16px] pb-[14px] pt-1 text-[var(--text-xs)] text-[var(--text-muted)] leading-relaxed bg-[var(--bg-page)]/40 border-t border-[var(--border)]">
+                    <p className="mb-2">
                       {item.summary ||
                         "Key benchmark indices continue to react to macroeconomic triggers, institutional flows, and quarterly corporate developments reported in the global markets dispatch."}
                     </p>
 
-                    <div className="flex items-center justify-between text-[11px] text-[#6D717B] pt-1">
-                      <span className="flex items-center gap-1.5 font-medium text-[#8E929B]">
+                    <div className="flex items-center justify-between text-[var(--text-xs)] pt-1">
+                      <span className="flex items-center gap-1.5 text-[var(--text-muted)] font-[var(--weight-regular)]">
                         <span>{item.publisher}</span>
                         <span>•</span>
                         <span>{formatTimeAgo(item.publishedAt)}</span>
@@ -100,7 +104,7 @@ export function MarketSummary({
                           href={item.link}
                           target="_blank"
                           rel="noreferrer"
-                          className="flex items-center gap-1 text-emerald-400 hover:underline hover:text-emerald-300 transition-colors"
+                          className="flex items-center gap-1 text-[var(--positive)] hover:underline transition-colors"
                         >
                           <span>Read full report</span>
                           <ExternalLink className="w-3 h-3" />
@@ -113,7 +117,7 @@ export function MarketSummary({
             );
           })
         )}
-      </div>
+      </Card>
     </div>
   );
 }

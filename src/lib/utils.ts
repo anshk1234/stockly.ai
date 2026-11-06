@@ -5,8 +5,11 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatPrice(price: number, currency: string = "USD"): string {
+export function formatPrice(price: number, currency: string = "USD", symbol?: string): string {
   if (isNaN(price) || price === null || price === undefined) return "0.00";
+
+  // Financial index points (e.g. NIFTY 50, S&P BSE SENSEX) don't carry currency symbol
+  const isIndex = symbol?.startsWith("^") || symbol?.includes("NIFTY") || symbol?.includes("SENSEX");
 
   const isUSD = currency === "USD" || currency === "$" || currency === "USDT";
   const isINR = currency === "INR" || currency === "₹";
@@ -17,15 +20,18 @@ export function formatPrice(price: number, currency: string = "USD"): string {
   });
 
   const formatted = formatter.format(price);
+  if (isIndex) return formatted;
   if (isUSD) return `$${formatted}`;
   if (isINR) return `₹${formatted}`;
   return formatted;
 }
 
-export function formatChange(change: number, currency: string = "USD"): string {
+export function formatChange(change: number, currency: string = "USD", symbol?: string): string {
   if (isNaN(change) || change === null || change === undefined) return "+0.00";
   const sign = change >= 0 ? "+" : "-";
   const abs = Math.abs(change);
+
+  const isIndex = symbol?.startsWith("^") || symbol?.includes("NIFTY") || symbol?.includes("SENSEX");
   const isUSD = currency === "USD" || currency === "$";
   const isINR = currency === "INR" || currency === "₹";
 
@@ -34,14 +40,16 @@ export function formatChange(change: number, currency: string = "USD"): string {
     maximumFractionDigits: 2,
   });
 
-  const symbol = isUSD ? "$" : isINR ? "₹" : "";
-  return `${sign}${symbol}${formatter.format(abs)}`;
+  const currPrefix = isIndex ? "" : isUSD ? "$" : isINR ? "₹" : "";
+  return `${sign}${currPrefix}${formatter.format(abs)}`;
 }
 
-export function formatPercent(percent: number): string {
+export function formatPercent(percent: number, showSign: boolean = true): string {
   if (isNaN(percent) || percent === null || percent === undefined) return "0.00%";
-  const sign = percent >= 0 ? "+" : "";
-  return `${sign}${percent.toFixed(2)}%`;
+  const abs = Math.abs(percent).toFixed(2);
+  if (!showSign) return `${abs}%`;
+  const sign = percent >= 0 ? "+" : "-";
+  return `${sign}${abs}%`;
 }
 
 export function formatCompactNumber(num: number | undefined | null, prefix: string = ""): string {

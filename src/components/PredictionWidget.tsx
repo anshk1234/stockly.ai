@@ -2,6 +2,7 @@
 
 import React from "react";
 import { ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { Card, SectionTitle } from "@/components/ui/layout";
 
 interface PredictionItem {
   id: string;
@@ -54,42 +55,40 @@ const PREDICTION_DATA: PredictionItem[] = [
 export function PredictionWidget() {
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-xs font-semibold text-[#EDEDEE] tracking-tight">Prediction Markets</h2>
-      </div>
+      {/* Section Title */}
+      <SectionTitle>Prediction Markets</SectionTitle>
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-[var(--space-3)]">
         {PREDICTION_DATA.map((card) => (
-          <div
-            key={card.id}
-            className="p-3.5 rounded-xl bg-[#1B1C20] border border-[#26282E] hover:border-[#33363E] transition-all"
-          >
-            <div className="text-xs font-semibold text-[#EDEDEE] mb-2 leading-snug">
+          <Card key={card.id} className="p-[16px]">
+            <div className="text-[var(--text-sm)] font-[var(--weight-medium)] text-[var(--text-primary)] mb-[var(--space-2)] leading-snug">
               {card.title}
             </div>
 
             {/* Options Rows */}
-            <div className="flex flex-col gap-1.5 mb-2.5">
+            <div className="flex flex-col gap-[var(--space-2)] mb-[var(--space-3)]">
               {card.options.map((opt, i) => {
                 const isPositive = opt.change >= 0;
                 return (
-                  <div key={i} className="flex items-center justify-between text-xs">
-                    <span className="text-[#989BA3] font-medium text-[11px]">{opt.label}</span>
+                  <div key={i} className="flex items-center justify-between text-[var(--text-xs)]">
+                    <span className="text-[var(--text-muted)] font-[var(--weight-regular)]">
+                      {opt.label}
+                    </span>
 
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-white font-mono tabular-nums text-[11px]">
+                    <div className="flex items-center gap-[var(--space-2)]">
+                      <span className="font-[var(--weight-medium)] text-[var(--text-primary)] tabular-nums">
                         {opt.percentage.toFixed(1)}%
                       </span>
 
                       <div
-                        className={`flex items-center text-[10px] font-medium font-mono tabular-nums ${
-                          isPositive ? "text-emerald-400" : "text-rose-400"
+                        className={`flex items-center text-[var(--text-xs)] font-[var(--weight-medium)] tabular-nums ${
+                          isPositive ? "text-[var(--positive)]" : "text-[var(--negative)]"
                         }`}
                       >
                         {isPositive ? (
-                          <ArrowUpRight className="w-3 h-3 stroke-[2.2]" />
+                          <ArrowUpRight className="w-3 h-3 stroke-[2]" />
                         ) : (
-                          <ArrowDownRight className="w-3 h-3 stroke-[2.2]" />
+                          <ArrowDownRight className="w-3 h-3 stroke-[2]" />
                         )}
                         <span>{Math.abs(opt.change).toFixed(1)}%</span>
                       </div>
@@ -100,13 +99,13 @@ export function PredictionWidget() {
             </div>
 
             {/* Footer metadata */}
-            <div className="flex items-center justify-between text-[10px] text-[#717580] pt-2 border-t border-[#23252A]">
+            <div className="flex items-center justify-between text-[var(--text-xs)] text-[var(--text-muted)] pt-[var(--space-2)] border-t border-[var(--border)]">
               <span>{card.volume}</span>
-              <span className="text-[#8E929B] hover:text-white transition-colors cursor-pointer">
+              <span className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer font-[var(--weight-medium)]">
                 {card.platform}
               </span>
             </div>
-          </div>
+          </Card>
         ))}
       </div>
     </div>

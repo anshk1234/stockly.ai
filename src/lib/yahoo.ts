@@ -516,3 +516,48 @@ export async function searchSymbols(query: string) {
     }
   });
 }
+
+/**
+ * Retrieve Trending & Recommended Assets for Search Dropdown dynamically from Yahoo Finance
+ */
+export async function getTrendingSearchAssets() {
+  return serverCache.getOrSet("trending-search-recommendations", 60, async () => {
+    try {
+      // Real trending stock symbols modeled on Perplexity Finance recommendation dropdown
+      const trendingSymbols = ["TITN", "HCI", "TPCS", "GDYN", "NVDA"];
+      const quotes = await yf.quote(trendingSymbols);
+      const list = Array.isArray(quotes) ? quotes : [quotes];
+
+      const trending = list.map((q) => ({
+        symbol: q.symbol,
+        name: q.longName || q.shortName || q.symbol,
+        exchange: (q.fullExchangeName || q.exchange || "NASDAQ").replace("NASDAQGS", "NASDAQ").replace("NSI", "NSE"),
+        currency: q.currency || "USD",
+        price: q.regularMarketPrice ?? 0,
+        change: q.regularMarketChange ?? 0,
+        changePercent: q.regularMarketChangePercent ?? 0,
+        country: "US",
+      }));
+
+      const recent = [
+        { symbol: "GOOG", name: "Alphabet Inc. GOOG" },
+        { symbol: "AAPL", name: "Apple Inc. AAPL" },
+        { symbol: "NVDA", name: "NVIDIA Corporation NVDA" },
+        { symbol: "BTC-USD", name: "Bitcoin BTC" },
+      ];
+
+      return { recent, trending };
+    } catch (error) {
+      console.error("Error fetching trending search assets:", error);
+      return {
+        recent: [
+          { symbol: "GOOG", name: "Alphabet Inc. GOOG" },
+          { symbol: "AAPL", name: "Apple Inc. AAPL" },
+          { symbol: "NVDA", name: "NVIDIA Corporation NVDA" },
+          { symbol: "BTC-USD", name: "Bitcoin BTC" },
+        ],
+        trending: [],
+      };
+    }
+  });
+}

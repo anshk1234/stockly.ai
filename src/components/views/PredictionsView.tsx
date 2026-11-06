@@ -2,10 +2,12 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Search, ArrowUpRight, ArrowDownRight, ExternalLink } from "lucide-react";
+import { Search, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { AssetQuote } from "@/lib/types";
 import { formatPrice, formatPercent } from "@/lib/utils";
 import { WatchlistWidget } from "@/components/WatchlistWidget";
+import { TwoColumnLayout, Card, SectionTitle } from "@/components/ui/layout";
+import { TickerLogo } from "@/components/ui/TickerLogo";
 
 interface PredictionsViewProps {
   watchlist: AssetQuote[];
@@ -134,84 +136,78 @@ export function PredictionsView({
     return matchesSearch;
   });
 
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-      {/* Left Column: Predictions Search & 2x2 Grid */}
-      <section className="lg:col-span-8 flex flex-col">
-        {/* Header */}
-        <div className="mb-4">
-          <h2 className="text-xs font-semibold text-[#EDEDEE] tracking-tight mb-2.5">
-            Prediction Markets
-          </h2>
+  const mainContent = (
+    <div className="flex flex-col gap-[var(--space-6)]">
+      <div>
+        <SectionTitle>Prediction Markets</SectionTitle>
 
-          {/* Search prediction markets input */}
-          <div className="relative mb-3">
-            <Search className="w-3.5 h-3.5 text-[#6D717B] absolute left-3 top-2.5" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search prediction markets..."
-              className="w-full bg-[#1B1C20] border border-[#26282E] rounded-xl pl-9 pr-3.5 py-1.5 text-xs text-white placeholder-[#6D717B] focus:outline-none focus:border-[#353840]"
-            />
-          </div>
-
-          {/* Category Filter Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-            {CATEGORY_PILLS.map((pill) => {
-              const isActive = selectedPill === pill;
-              return (
-                <button
-                  key={pill}
-                  onClick={() => setSelectedPill(pill)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
-                    isActive
-                      ? "bg-[#252830] text-white"
-                      : "text-[#8E929B] hover:text-white hover:bg-[#1E1F24]"
-                  }`}
-                >
-                  {pill}
-                </button>
-              );
-            })}
-          </div>
+        {/* Search prediction markets input */}
+        <div className="relative mb-[var(--space-3)]">
+          <Search className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-3 top-2.5" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search prediction markets..."
+            className="w-full bg-[var(--bg-card)] border border-[var(--border)] rounded-[var(--radius-card)] pl-9 pr-3.5 py-1.5 text-[var(--text-xs)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--text-muted)]"
+          />
         </div>
 
-        {/* Grid of Detailed Prediction Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+        {/* Category Filter Pills */}
+        <div className="flex items-center gap-[var(--space-2)] overflow-x-auto no-scrollbar py-0.5 mb-[var(--space-4)]">
+          {CATEGORY_PILLS.map((pill) => {
+            const isActive = selectedPill === pill;
+            return (
+              <button
+                key={pill}
+                onClick={() => setSelectedPill(pill)}
+                className={`px-2.5 py-1 rounded-[var(--radius-card)] text-[var(--text-xs)] font-[var(--weight-medium)] transition-colors whitespace-nowrap ${
+                  isActive
+                    ? "bg-[var(--bg-card-hover)] text-[var(--text-primary)] border border-[var(--border)]"
+                    : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)]"
+                }`}
+              >
+                {pill}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* 2x2 Grid of Detailed Prediction Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-[var(--space-3)]">
           {filteredCards.map((card) => (
-            <div
+            <Card
               key={card.id}
-              className="p-4 rounded-xl bg-[#1B1C20] border border-[#26282E] hover:border-[#33363E] transition-all flex flex-col justify-between"
+              className="p-[16px] flex flex-col justify-between"
             >
               <div>
-                {/* Header row with volume */}
-                <div className="flex items-start justify-between gap-2 mb-3">
-                  <div className="text-xs font-semibold text-[#EDEDEE] leading-snug">
+                <div className="flex items-start justify-between gap-2 mb-[var(--space-3)]">
+                  <div className="text-[var(--text-sm)] font-[var(--weight-medium)] text-[var(--text-primary)] leading-snug">
                     {card.title}
                   </div>
-                  <span className="text-[10px] text-[#717580] shrink-0 font-mono">
+                  <span className="text-[var(--text-xs)] text-[var(--text-muted)] shrink-0 font-[var(--weight-regular)]">
                     {card.volume}
                   </span>
                 </div>
 
-                {/* Probability Rows */}
-                <div className="flex flex-col gap-1.5 mb-3">
+                <div className="flex flex-col gap-[var(--space-2)] mb-[var(--space-3)]">
                   {card.options.map((opt, i) => {
                     const isPositive = opt.change >= 0;
                     return (
-                      <div key={i} className="flex items-center justify-between text-xs">
-                        <span className="text-[#989BA3] font-medium text-[11px]">{opt.label}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-white font-mono tabular-nums text-[11px]">
+                      <div key={i} className="flex items-center justify-between text-[var(--text-xs)]">
+                        <span className="text-[var(--text-muted)] font-[var(--weight-regular)]">
+                          {opt.label}
+                        </span>
+                        <div className="flex items-center gap-[var(--space-2)]">
+                          <span className="font-[var(--weight-medium)] text-[var(--text-primary)] tabular-nums">
                             {opt.percentage.toFixed(1)}%
                           </span>
                           <div
-                            className={`flex items-center text-[10px] font-medium font-mono tabular-nums ${
-                              isPositive ? "text-emerald-400" : "text-rose-400"
+                            className={`flex items-center text-[var(--text-xs)] font-[var(--weight-medium)] tabular-nums ${
+                              isPositive ? "text-[var(--positive)]" : "text-[var(--negative)]"
                             }`}
                           >
-                            {isPositive ? <ArrowUpRight className="w-3 h-3 stroke-[2.2]" /> : <ArrowDownRight className="w-3 h-3 stroke-[2.2]" />}
+                            {isPositive ? <ArrowUpRight className="w-3 h-3 stroke-[2]" /> : <ArrowDownRight className="w-3 h-3 stroke-[2]" />}
                             <span>{Math.abs(opt.change).toFixed(1)}%</span>
                           </div>
                         </div>
@@ -220,43 +216,46 @@ export function PredictionsView({
                   })}
                 </div>
 
-                {/* Analytical Narrative Paragraph */}
-                <p className="text-[11px] text-[#8E929B] leading-relaxed pt-2 border-t border-[#23252A] mb-3">
+                <p className="text-[var(--text-xs)] text-[var(--text-muted)] leading-relaxed pt-2 border-t border-[var(--border)] mb-[var(--space-3)]">
                   {card.narrative}
                 </p>
               </div>
 
-              {/* Card Footer */}
-              <div className="flex items-center justify-between text-[10px] text-[#6D717B] pt-2 border-t border-[#23252A]">
+              <div className="flex items-center justify-between text-[var(--text-xs)] text-[var(--text-muted)] pt-2 border-t border-[var(--border)]">
                 <span>{card.sources} • {card.date}</span>
-                <span className="text-[#8E929B] hover:text-white transition-colors cursor-pointer">
+                <span className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer font-[var(--weight-medium)]">
                   {card.platform}
                 </span>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
-      </section>
+      </div>
+    </div>
+  );
 
-      {/* Right Column: Watchlist, Gainers/Losers, and Popular Cryptos */}
-      <aside className="lg:col-span-4 flex flex-col gap-6">
-        <WatchlistWidget
-          items={watchlist}
-          isLoading={isLoadingWatchlist}
-          onManageWatchlist={onOpenSearch}
-        />
+  const sidebarContent = (
+    <div className="flex flex-col gap-[var(--space-6)]">
+      <WatchlistWidget
+        items={watchlist}
+        isLoading={isLoadingWatchlist}
+        onManageWatchlist={onOpenSearch}
+      />
 
-        {/* Gainers / Losers / Active Movers */}
-        <div className="rounded-xl bg-[#1B1C20] border border-[#26282E] p-3.5">
-          <div className="flex items-center gap-3 border-b border-[#23252A] pb-2 mb-3 text-xs">
+      {/* Gainers / Losers / Active Movers inside ONE card */}
+      <div className="w-full">
+        <SectionTitle>Market Movers</SectionTitle>
+
+        <Card>
+          <div className="flex items-center gap-[var(--space-3)] px-[16px] pt-[12px] pb-[8px] border-b border-[var(--border)] text-[var(--text-xs)]">
             {(["gainers", "losers", "active"] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setMoverTab(tab)}
-                className={`capitalize font-medium transition-colors ${
+                className={`capitalize font-[var(--weight-medium)] transition-colors ${
                   moverTab === tab
-                    ? "text-white border-b border-white pb-2 -mb-2.5"
-                    : "text-[#717580] hover:text-[#989BA3]"
+                    ? "text-[var(--text-primary)] border-b-2 border-[var(--text-primary)] pb-1 -mb-[9px]"
+                    : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
                 }`}
               >
                 {tab}
@@ -264,20 +263,23 @@ export function PredictionsView({
             ))}
           </div>
 
-          <div className="flex flex-col divide-y divide-[#23252A]">
+          <div className="flex flex-col">
             {MARKET_MOVERS[moverTab].map((item, idx) => {
               const isPos = item.change.startsWith("+");
               return (
-                <div key={idx} className="flex items-center justify-between py-2 text-xs">
+                <div
+                  key={idx}
+                  className="flex items-center justify-between px-[16px] py-[12px] border-b border-[var(--border)] last:border-b-0 text-[var(--text-xs)]"
+                >
                   <div>
-                    <div className="font-medium text-white truncate max-w-[140px]">
+                    <div className="font-[var(--weight-medium)] text-[var(--text-primary)] truncate max-w-[140px]">
                       {item.name}
                     </div>
-                    <div className="text-[10px] text-[#717580] font-mono">{item.symbol}</div>
+                    <div className="text-[var(--text-xs)] text-[var(--text-muted)]">{item.symbol}</div>
                   </div>
                   <div className="text-right">
-                    <div className="font-semibold text-white font-mono tabular-nums">{item.price}</div>
-                    <div className={`text-[10px] font-medium font-mono tabular-nums ${isPos ? "text-emerald-400" : "text-rose-400"}`}>
+                    <div className="font-[var(--weight-medium)] text-[var(--text-primary)] tabular-nums">{item.price}</div>
+                    <div className={`text-[var(--text-xs)] font-[var(--weight-medium)] tabular-nums ${isPos ? "text-[var(--positive)]" : "text-[var(--negative)]"}`}>
                       {item.change}
                     </div>
                   </div>
@@ -285,51 +287,45 @@ export function PredictionsView({
               );
             })}
           </div>
+        </Card>
+      </div>
 
-          <button className="w-full text-center text-[11px] text-[#8E929B] hover:text-white pt-2.5 border-t border-[#23252A] mt-2 transition-colors">
-            See all &gt;
-          </button>
-        </div>
+      {/* Popular Cryptos inside ONE card */}
+      <div className="w-full">
+        <SectionTitle>Popular Cryptocurrencies</SectionTitle>
 
-        {/* Popular Cryptocurrencies */}
-        <div className="rounded-xl bg-[#1B1C20] border border-[#26282E] p-3.5">
-          <div className="text-xs font-semibold text-[#EDEDEE] mb-3">
-            Popular Cryptocurrencies
-          </div>
-
-          <div className="flex flex-col divide-y divide-[#23252A]">
-            {popularCryptos.map((coin) => {
-              const isPos = coin.changePercent >= 0;
-              return (
-                <Link
-                  key={coin.symbol}
-                  href={`/stocks/${encodeURIComponent(coin.symbol)}`}
-                  className="flex items-center justify-between py-2 text-xs hover:bg-[#202227] px-1 rounded transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded bg-[#24262C] flex items-center justify-center font-bold text-[10px] text-emerald-400">
-                      {coin.shortName?.slice(0, 3)}
-                    </div>
-                    <div>
-                      <div className="font-medium text-white">{coin.name}</div>
-                      <div className="text-[10px] text-[#717580] font-mono">{coin.symbol} · CRYPTO</div>
-                    </div>
+        <Card>
+          {popularCryptos.map((coin) => {
+            const isPos = coin.changePercent >= 0;
+            return (
+              <Link
+                key={coin.symbol}
+                href={`/stocks/${encodeURIComponent(coin.symbol)}`}
+                className="flex items-center justify-between px-[16px] py-[12px] border-b border-[var(--border)] last:border-b-0 hover:bg-[var(--bg-card-hover)] transition-colors"
+              >
+                <div className="flex items-center gap-[var(--space-2)]">
+                  <TickerLogo symbol={coin.symbol} name={coin.name} size={24} />
+                  <div>
+                    <div className="font-[var(--weight-medium)] text-[var(--text-primary)] text-[var(--text-xs)]">{coin.name}</div>
+                    <div className="text-[10px] text-[var(--text-muted)]">{coin.symbol} · CRYPTO</div>
                   </div>
+                </div>
 
-                  <div className="text-right">
-                    <div className="font-semibold text-white font-mono tabular-nums">
-                      {formatPrice(coin.price, "USD")}
-                    </div>
-                    <div className={`text-[10px] font-medium font-mono tabular-nums ${isPos ? "text-emerald-400" : "text-rose-400"}`}>
-                      {formatPercent(coin.changePercent)}
-                    </div>
+                <div className="text-right">
+                  <div className="font-[var(--weight-medium)] text-[var(--text-primary)] text-[var(--text-xs)] tabular-nums">
+                    {formatPrice(coin.price, "USD")}
                   </div>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      </aside>
+                  <div className={`text-[10px] font-[var(--weight-medium)] tabular-nums ${isPos ? "text-[var(--positive)]" : "text-[var(--negative)]"}`}>
+                    {formatPercent(coin.changePercent)}
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </Card>
+      </div>
     </div>
   );
+
+  return <TwoColumnLayout main={mainContent} sidebar={sidebarContent} />;
 }

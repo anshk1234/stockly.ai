@@ -86,6 +86,22 @@ export interface SearchResult {
   quoteType?: string;
 }
 
+export interface TrendingSearchAsset {
+  symbol: string;
+  name: string;
+  exchange: string;
+  currency: string;
+  price: number;
+  change: number;
+  changePercent: number;
+  country?: string;
+}
+
+export interface SearchRecommendationData {
+  recent: { symbol: string; name: string }[];
+  trending: TrendingSearchAsset[];
+}
+
 export type TimeRange = "1D" | "5D" | "1M" | "6M" | "YTD" | "1Y" | "5Y" | "MAX";
 
 export type DashboardTab = "Markets" | "Crypto" | "Predictions" | "Watchlist";
