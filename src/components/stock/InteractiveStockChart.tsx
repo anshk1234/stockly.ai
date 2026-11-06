@@ -572,20 +572,6 @@ export function InteractiveStockChart({
             </g>
           ))}
 
-          {/* Watermark Label in Top Right */}
-          <text
-            x={padding.left + chartWidth - 10}
-            y={padding.top + 22}
-            textAnchor="end"
-            fill="rgba(255, 255, 255, 0.16)"
-            fontSize={12.5}
-            fontWeight="500"
-            letterSpacing="-0.02em"
-            className="select-none pointer-events-none"
-          >
-            perplexity
-          </text>
-
           {/* Previous Close Reference Line */}
           {prevCloseY !== null && (
             <g>
