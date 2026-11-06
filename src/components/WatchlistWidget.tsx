@@ -5,7 +5,7 @@ import Link from "next/link";
 import { SlidersHorizontal, ChevronRight } from "lucide-react";
 import { AssetQuote } from "@/lib/types";
 import { formatPrice, formatPercent } from "@/lib/utils";
-import { Card, CardRow, SectionTitle } from "@/components/ui/layout";
+import { Card, SectionTitle } from "@/components/ui/layout";
 import { TickerLogo } from "@/components/ui/TickerLogo";
 
 interface WatchlistWidgetProps {

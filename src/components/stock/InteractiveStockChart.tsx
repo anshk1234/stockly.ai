@@ -13,7 +13,6 @@ import {
   ArrowDownRight,
   Loader2,
   RotateCcw,
-  ZoomIn,
 } from "lucide-react";
 import { CandlePoint, TimeRange } from "@/lib/types";
 import { formatPrice, formatPercent, formatChange, formatCompactNumber } from "@/lib/utils";

@@ -348,7 +348,7 @@ export async function getWatchlist(symbols: string[] = ["MSFT", "AAPL", "NVDA"])
           };
 
           // Fetch historical 6M daily candles to compute accurate 1D, 5D, 1M, 6M returns
-          let perf1D = q.regularMarketChangePercent ?? 0;
+          const perf1D = q.regularMarketChangePercent ?? 0;
           let perf5D = 0;
           let perf1M = 0;
           let perf6M = 0;

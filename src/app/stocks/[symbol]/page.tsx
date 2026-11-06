@@ -6,8 +6,6 @@ import {
   Star,
   BellRing,
   Sparkles,
-  Share2,
-  Menu,
   ChevronRight,
   Loader2,
   ArrowLeft,

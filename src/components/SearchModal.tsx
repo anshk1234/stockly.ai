@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Search, X, Loader2, ArrowRight, TrendingUp } from "lucide-react";
+import { Search, X, Loader2, ArrowRight } from "lucide-react";
 import { SearchResult } from "@/lib/types";
 
 interface SearchModalProps {
