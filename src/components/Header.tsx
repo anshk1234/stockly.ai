@@ -17,7 +17,7 @@ export function Header({ onSelectSymbol }: HeaderProps) {
         {/* Col 1 (Left): Brand Logo */}
         <div className="flex items-center justify-start shrink-0">
           <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-6 h-6 rounded-[6px] overflow-hidden flex items-center justify-center shrink-0 border border-emerald-500/30 shadow-sm"><img src="/icon.svg" alt="Stockly" className="w-full h-full object-cover" /></div>
+            <div className="w-7 h-7 rounded-[7px] overflow-hidden flex items-center justify-center shrink-0 border border-white/10 shadow-sm"><img src="/icon.svg" alt="Stockly" className="w-full h-full object-cover" /></div>
             <span className="font-[var(--weight-medium)] text-[14px] text-[var(--text-primary)] tracking-tight whitespace-nowrap">
               Stockly <span className="text-[var(--text-muted)] font-[var(--weight-regular)]">Finance</span>
             </span>
@@ -40,3 +40,4 @@ export function Header({ onSelectSymbol }: HeaderProps) {
     </header>
   );
 }
+
