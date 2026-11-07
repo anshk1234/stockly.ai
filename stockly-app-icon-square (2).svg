@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 48 48" fill="none" role="img" aria-label="Stockly">
+  <title>Stockly</title>
+  <rect width="48" height="48" fill="#0D2019"/>
+  <path d="M37.95 25.22 A14 14 0 1 1 26.43 10.21" stroke="#E8EDEA" stroke-width="4" stroke-linecap="round"/>
+  <path d="M16 28 L23 21 L27.5 25.5 L38.5 14.5" stroke="#34D399" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M33 14.5 H38.5 V19" stroke="#34D399" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

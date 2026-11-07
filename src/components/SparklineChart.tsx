@@ -14,13 +14,12 @@ export function SparklineChart({
   data = [],
   isPositive,
   className = "",
-  height = 56,
-  width = 160,
+  height = 44,
+  width = 240,
 }: SparklineChartProps) {
   const gradientId = useId();
 
   if (!data || data.length < 2) {
-    // Generate a subtle smooth default line if not enough points
     return (
       <div className={`h-[${height}px] flex items-center justify-center opacity-30 text-xs text-neutral-500 ${className}`}>
         <span>No chart data</span>
@@ -32,21 +31,21 @@ export function SparklineChart({
   const max = Math.max(...data);
   const range = max - min || 1;
 
-  // Add padding to SVG so top and bottom lines don't get clipped
-  const padding = 4;
-  const usableHeight = height - padding * 2;
-  const usableWidth = width;
+  // Vertical safe padding inside canvas
+  const paddingTop = 4;
+  const paddingBottom = 4;
+  const usableHeight = height - paddingTop - paddingBottom;
 
+  // Build edge-to-edge full-bleed points starting at x=0 and ending at x=width
   const points = data.map((val, idx) => {
-    const x = (idx / (data.length - 1)) * usableWidth;
-    const y = height - padding - ((val - min) / range) * usableHeight;
+    const x = (idx / (data.length - 1)) * width;
+    const y = height - paddingBottom - ((val - min) / range) * usableHeight;
     return { x, y };
   });
 
-  // Build SVG path
+  // Smooth Bezier curve path
   const pathD = points.reduce((acc, pt, idx, arr) => {
     if (idx === 0) return `M ${pt.x.toFixed(1)},${pt.y.toFixed(1)}`;
-    // Smooth Bezier curve control points
     const prev = arr[idx - 1];
     const cp1x = prev.x + (pt.x - prev.x) / 2;
     const cp1y = prev.y;
@@ -55,36 +54,37 @@ export function SparklineChart({
     return `${acc} C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${pt.x.toFixed(1)},${pt.y.toFixed(1)}`;
   }, "");
 
-  // Area path (closed at the bottom)
-  const lastPoint = points[points.length - 1];
-  const areaD = `${pathD} L ${lastPoint.x.toFixed(1)},${height} L 0,${height} Z`;
+  // Area fill: closed cleanly at the bottom
+  const areaD = `${pathD} L ${width},${height} L 0,${height} Z`;
 
-  const strokeColor = isPositive ? "var(--positive, #3ecf8e)" : "var(--negative, #f2555a)";
-  const stopColor = isPositive ? "var(--positive, #3ecf8e)" : "var(--negative, #f2555a)";
+  const color = isPositive ? "#3ecf8e" : "#f2555a";
 
   return (
-    <div className={`relative overflow-hidden ${className}`}>
+    <div className={`w-full h-full relative overflow-hidden select-none ${className}`}>
       <svg
         viewBox={`0 0 ${width} ${height}`}
-        className="w-full h-full overflow-visible"
+        className="w-full h-full block overflow-visible"
         preserveAspectRatio="none"
       >
         <defs>
+          {/* Increased luminous gradient lighting under the curve */}
           <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={stopColor} stopOpacity={0.25} />
-            <stop offset="100%" stopColor={stopColor} stopOpacity={0.0} />
+            <stop offset="0%" stopColor={color} stopOpacity={0.28} />
+            <stop offset="45%" stopColor={color} stopOpacity={0.12} />
+            <stop offset="85%" stopColor={color} stopOpacity={0.03} />
+            <stop offset="100%" stopColor={color} stopOpacity={0.0} />
           </linearGradient>
         </defs>
 
-        {/* Gradient Area */}
+        {/* Soft Ambient Area Fog */}
         <path d={areaD} fill={`url(#${gradientId})`} />
 
-        {/* Line Stroke */}
+        {/* Edge-to-Edge Single Solid Color Stroke */}
         <path
           d={pathD}
           fill="none"
-          stroke={strokeColor}
-          strokeWidth={1.8}
+          stroke={color}
+          strokeWidth={1.6}
           strokeLinecap="round"
           strokeLinejoin="round"
         />

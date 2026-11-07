@@ -203,9 +203,7 @@ export function PredictionsView({
                             {opt.percentage.toFixed(1)}%
                           </span>
                           <div
-                            className={`flex items-center text-[var(--text-xs)] font-[var(--weight-medium)] tabular-nums ${
-                              isPositive ? "text-[var(--positive)]" : "text-[var(--negative)]"
-                            }`}
+                            className={`flex items-center gap-0.5 text-[var(--text-xs)] font-[var(--weight-medium)] tabular-nums ${isPositive ? "text-positive" : "text-negative"}`} style={{ color: isPositive ? "#3ecf8e" : "#f2555a" }}
                           >
                             {isPositive ? <ArrowUpRight className="w-3 h-3 stroke-[2]" /> : <ArrowDownRight className="w-3 h-3 stroke-[2]" />}
                             <span>{Math.abs(opt.change).toFixed(1)}%</span>
@@ -279,7 +277,7 @@ export function PredictionsView({
                   </div>
                   <div className="text-right">
                     <div className="font-[var(--weight-medium)] text-[var(--text-primary)] tabular-nums">{item.price}</div>
-                    <div className={`text-[var(--text-xs)] font-[var(--weight-medium)] tabular-nums ${isPos ? "text-[var(--positive)]" : "text-[var(--negative)]"}`}>
+                    <div className={`text-[var(--text-xs)] font-[var(--weight-medium)] tabular-nums ${isPos ? "text-positive" : "text-negative"}`} style={{ color: isPos ? "#3ecf8e" : "#f2555a" }}>
                       {item.change}
                     </div>
                   </div>
@@ -315,7 +313,7 @@ export function PredictionsView({
                   <div className="font-[var(--weight-medium)] text-[var(--text-primary)] text-[var(--text-xs)] tabular-nums">
                     {formatPrice(coin.price, "USD")}
                   </div>
-                  <div className={`text-[10px] font-[var(--weight-medium)] tabular-nums ${isPos ? "text-[var(--positive)]" : "text-[var(--negative)]"}`}>
+                  <div className={`text-[10px] font-[var(--weight-medium)] tabular-nums ${isPos ? "text-positive" : "text-negative"}`} style={{ color: isPos ? "#3ecf8e" : "#f2555a" }}>
                     {formatPercent(coin.changePercent)}
                   </div>
                 </div>

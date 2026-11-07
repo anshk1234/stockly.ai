@@ -16,7 +16,8 @@ import { TickerLogo } from "@/components/ui/TickerLogo";
 import { InteractiveStockChart } from "@/components/stock/InteractiveStockChart";
 import { KeyStatsGrid } from "@/components/stock/KeyStatsGrid";
 import { CompanyProfileWidget } from "@/components/stock/CompanyProfileWidget";
-import { PageContainer, TwoColumnLayout } from "@/components/ui/layout";
+import { PageContainer, TwoColumnLayout, Card, SectionTitle } from "@/components/ui/layout";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { DetailedStockQuote, CandlePoint, TimeRange } from "@/lib/types";
 
 const STOCK_TABS = [
@@ -100,43 +101,40 @@ export default function StockDetailPage({
 
   const getCountryFlag = (country?: string) => {
     if (!country) return "🌐";
-    if (country.toLowerCase().includes("india")) return "🇮🇳";
-    if (country.toLowerCase().includes("united states") || country.toLowerCase().includes("us")) return "🇺🇸";
+    if (country === "India" || country === "IN") return "🇮🇳";
+    if (country === "United States" || country === "US") return "🇺🇸";
     return "🌐";
   };
 
   return (
     <div className="min-h-screen bg-[var(--bg-page)] text-[var(--text-primary)] flex flex-col font-sans">
-      {/* Full-width Top Header with 3-column grid */}
+      {/* Top Header */}
       <header className="w-full border-b border-[var(--border)] bg-[var(--bg-page)]/95 backdrop-blur-md sticky top-0 z-40">
         <div className="w-full px-6 lg:px-8 py-2.5 grid grid-cols-[auto_1fr_auto] md:grid-cols-[1fr_auto_1fr] items-center gap-4">
-          {/* Breadcrumb Logo */}
-          <div className="flex items-center gap-2 text-[13px] shrink-0">
-            <Link
-              href="/"
-              className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors flex items-center gap-1.5"
-            >
-              <div className="w-5 h-5 rounded flex items-center justify-center text-[var(--positive)]">
-                <Sparkles className="w-4 h-4" />
-              </div>
-              <span className="font-[var(--weight-medium)] text-[var(--text-primary)] whitespace-nowrap">Stockly Finance</span>
+          <div className="flex items-center justify-start shrink-0">
+            <Link href="/" className="flex items-center gap-2 group">
+              <div className="w-6 h-6 rounded-[6px] overflow-hidden flex items-center justify-center shrink-0 border border-emerald-500/30 shadow-sm"><img src="/icon.svg" alt="Stockly" className="w-full h-full object-cover" /></div>
+              <span className="font-[var(--weight-medium)] text-[14px] text-[var(--text-primary)] tracking-tight whitespace-nowrap">
+                Stockly <span className="text-[var(--text-muted)] font-[var(--weight-regular)]">Finance</span>
+              </span>
             </Link>
-            <ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-            <span className="font-[var(--weight-medium)] text-[var(--positive)]">
-              {symbol}
-            </span>
           </div>
 
-          {/* Centered Search Bar with Recommendations */}
           <div className="w-full max-w-[460px] mx-auto">
-            <SearchDropdown />
+            <SearchDropdown onSelectSymbol={handleSelectSymbol} />
           </div>
 
-          {/* Right Actions */}
-          <div className="flex items-center justify-end text-[12px] shrink-0">
-            <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-[var(--bg-card-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors font-[var(--weight-medium)] whitespace-nowrap">
-              <BellRing className="w-3.5 h-3.5" />
-              <span>Price Alert</span>
+          <div className="flex items-center justify-end gap-2.5 shrink-0">
+            <button
+              onClick={() => setIsFollowing(!isFollowing)}
+              className={`p-1.5 rounded-full border transition-colors ${
+                isFollowing
+                  ? "bg-[var(--positive)]/15 border-[var(--positive)]/30 text-[var(--positive)]"
+                  : "border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)]"
+              }`}
+              title={isFollowing ? "Following" : "Follow ticker"}
+            >
+              <Star className={`w-4 h-4 ${isFollowing ? "fill-[var(--positive)]" : ""}`} />
             </button>
           </div>
         </div>
@@ -146,9 +144,87 @@ export default function StockDetailPage({
       <main className="flex-1 py-[var(--space-5)]">
         <PageContainer>
           {isLoadingStock && !stock ? (
-            <div className="flex flex-col items-center justify-center py-24 text-[var(--text-muted)]">
-              <Loader2 className="w-7 h-7 animate-spin text-[var(--positive)] mb-2.5" />
-              <span className="text-[var(--text-xs)]">Fetching real-time data for {symbol} from Yahoo Finance...</span>
+            /* Full Page Shimmer Skeleton Loading State */
+            <div className="w-full">
+              {/* Header Banner Skeleton */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-[var(--space-3)] mb-[var(--space-4)]">
+                <div className="flex items-center gap-[var(--space-3)]">
+                  <Skeleton className="w-[42px] h-[42px] rounded-lg shrink-0" />
+                  <div>
+                    <Skeleton className="h-6 w-48 mb-2" />
+                    <Skeleton className="h-3.5 w-32" />
+                  </div>
+                </div>
+                <div className="flex items-center gap-[var(--space-2)]">
+                  <Skeleton className="h-8 w-24 rounded-[var(--radius-card)]" />
+                  <Skeleton className="h-8 w-28 rounded-[var(--radius-card)]" />
+                </div>
+              </div>
+
+              {/* Sub Tabs Skeleton */}
+              <div className="flex items-center gap-3 border-b border-[var(--border)] mb-[var(--space-5)] pb-2 overflow-x-hidden">
+                {[...Array(6)].map((_, i) => (
+                  <Skeleton key={i} className="h-6 w-20 rounded" />
+                ))}
+              </div>
+
+              {/* Two Column Workspace Skeleton */}
+              <TwoColumnLayout
+                main={
+                  <div className="flex flex-col gap-[var(--space-4)]">
+                    {/* Chart Card Skeleton */}
+                    <Card className="p-[16px] flex flex-col gap-4">
+                      <div className="flex items-baseline justify-between">
+                        <div>
+                          <Skeleton className="h-7 w-36 mb-2" />
+                          <Skeleton className="h-3.5 w-24" />
+                        </div>
+                        <div className="flex gap-1.5">
+                          {[...Array(6)].map((_, i) => (
+                            <Skeleton key={i} className="h-6 w-9 rounded-md" />
+                          ))}
+                        </div>
+                      </div>
+                      <Skeleton className="w-full h-[320px] rounded-lg" />
+                    </Card>
+
+                    {/* Key Stats Card Skeleton */}
+                    <div>
+                      <Skeleton className="h-4 w-28 mb-2.5" />
+                      <Card className="p-[18px]">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-4 gap-x-5">
+                          {[...Array(8)].map((_, i) => (
+                            <div key={i} className="flex flex-col gap-1.5">
+                              <Skeleton className="h-3 w-16" />
+                              <Skeleton className="h-4 w-24" />
+                            </div>
+                          ))}
+                        </div>
+                      </Card>
+                    </div>
+                  </div>
+                }
+                sidebar={
+                  <div className="flex flex-col gap-[var(--space-6)] w-full">
+                    <div>
+                      <Skeleton className="h-4 w-16 mb-2.5" />
+                      <Card className="divide-y divide-[var(--border)]">
+                        {[...Array(6)].map((_, i) => (
+                          <div key={i} className="flex items-center justify-between px-[16px] py-[12px]">
+                            <Skeleton className="h-3 w-20" />
+                            <Skeleton className="h-3 w-28" />
+                          </div>
+                        ))}
+                        <div className="p-[16px] space-y-2">
+                          <Skeleton className="h-3 w-full" />
+                          <Skeleton className="h-3 w-4/5" />
+                          <Skeleton className="h-3 w-2/3" />
+                        </div>
+                      </Card>
+                    </div>
+                  </div>
+                }
+              />
             </div>
           ) : !stock ? (
             <div className="p-10 text-center text-[var(--text-muted)]">
