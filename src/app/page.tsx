@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Header } from "@/components/Header";
 import { SubHeader } from "@/components/SubHeader";
 import { TopAssetsStrip } from "@/components/TopAssetsStrip";
-import { MarketSummary } from "@/components/MarketSummary";
+import { MarketSummary, SourceItem } from "@/components/MarketSummary";
 import { WatchlistWidget } from "@/components/WatchlistWidget";
 import { PredictionWidget } from "@/components/PredictionWidget";
 import { SearchModal } from "@/components/SearchModal";
@@ -23,6 +23,8 @@ export default function Home() {
   const [assets, setAssets] = useState<AssetQuote[]>([]);
   const [watchlist, setWatchlist] = useState<AssetQuote[]>([]);
   const [news, setNews] = useState<NewsItem[]>([]);
+  const [sourcesCount, setSourcesCount] = useState<number>(0);
+  const [sources, setSources] = useState<SourceItem[]>([]);
   const [sentiment, setSentiment] = useState<MarketSentiment | null>(null);
 
   const [isLoadingAssets, setIsLoadingAssets] = useState(true);
@@ -53,7 +55,7 @@ export default function Home() {
     }
   }, []);
 
-  // Fetch Market News
+  // Fetch Market News Summary (Perplexity-style Live Wire & Synthesis)
   const fetchNews = useCallback(async (selectedRegion: "IN" | "US") => {
     setIsLoadingNews(true);
     try {
@@ -61,7 +63,9 @@ export default function Home() {
       const data = await res.json();
       if (data.news) {
         setNews(data.news);
-        setLastUpdated(new Date());
+        setSourcesCount(data.sourcesCount || data.news.length);
+        setSources(data.sources || []);
+        setLastUpdated(data.lastUpdated ? new Date(data.lastUpdated) : new Date());
       }
     } catch (err) {
       console.error("Failed to load news:", err);
@@ -164,6 +168,8 @@ export default function Home() {
                     news={news}
                     isLoading={isLoadingNews}
                     lastUpdated={lastUpdated}
+                    sourcesCount={sourcesCount}
+                    sources={sources}
                   />
                 </div>
               }
