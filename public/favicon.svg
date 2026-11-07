@@ -1,7 +1,57 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 48 48" fill="none" role="img" aria-label="Stockly">
-  <title>Stockly</title>
-  <rect width="48" height="48" fill="#0D2019"/>
-  <path d="M37.95 25.22 A14 14 0 1 1 26.43 10.21" stroke="#E8EDEA" stroke-width="4" stroke-linecap="round"/>
-  <path d="M16 28 L23 21 L27.5 25.5 L38.5 14.5" stroke="#34D399" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M33 14.5 H38.5 V19" stroke="#34D399" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="100%" height="100%">
+  <defs>
+    <!-- Outer canvas dark background -->
+    <linearGradient id="bg-canvas" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0d0d0d" />
+      <stop offset="100%" stop-color="#040404" />
+    </linearGradient>
+
+    <!-- Squircle surface radial highlight -->
+    <radialGradient id="card-surface" cx="50%" cy="8%" r="85%" fx="50%" fy="8%">
+      <stop offset="0%" stop-color="#262626" />
+      <stop offset="45%" stop-color="#0d0d0d" />
+      <stop offset="100%" stop-color="#020202" />
+    </radialGradient>
+
+    <!-- Subtle top-lit border gradient -->
+    <linearGradient id="card-border" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#525252" />
+      <stop offset="50%" stop-color="#222222" />
+      <stop offset="100%" stop-color="#121212" />
+    </linearGradient>
+  </defs>
+
+  <!-- Outer Backdrop -->
+  <rect width="1000" height="1000" fill="url(#bg-canvas)" />
+
+  <!-- Rounded App Icon Container -->
+  <rect x="82" y="72" width="836" height="856" rx="195" fill="url(#card-surface)" stroke="url(#card-border)" stroke-width="3.5" />
+
+  <!-- White Vector Logo Marks -->
+  <g fill="none" stroke="#FFFFFF" stroke-width="48" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Track 1: Top-left short bar -->
+    <line x1="211" y1="301" x2="294" y2="218" />
+
+    <!-- Track 2: Upper-left long bar -->
+    <line x1="210" y1="454" x2="449" y2="215" />
+
+    <!-- Track 3: Upper-middle floating bar -->
+    <line x1="442" y1="378" x2="528" y2="292" />
+
+    <!-- Track 3 to Track 4: Main zig-zag trend arrow -->
+    <polyline points="210,606 358,458 440,540 762,218" />
+    <polyline points="641,218 762,218 762,339" />
+
+    <!-- Track 4: Bottom-left bar aligned with main arrow shaft -->
+    <line x1="210" y1="758" x2="358" y2="610" />
+
+    <!-- Track 5: Lower-middle long bar -->
+    <line x1="361" y1="759" x2="677" y2="443" />
+
+    <!-- Track 6: Lower-right medium bar -->
+    <line x1="515" y1="759" x2="751" y2="523" />
+
+    <!-- Track 7: Bottom-right short bar -->
+    <line x1="666" y1="759" x2="751" y2="674" />
+  </g>
 </svg>

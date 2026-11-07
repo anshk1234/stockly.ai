@@ -113,7 +113,7 @@ export default function StockDetailPage({
         <div className="w-full px-6 lg:px-8 py-2.5 grid grid-cols-[auto_1fr_auto] md:grid-cols-[1fr_auto_1fr] items-center gap-4">
           <div className="flex items-center justify-start shrink-0">
             <Link href="/" className="flex items-center gap-2 group">
-              <div className="w-6 h-6 rounded-[6px] overflow-hidden flex items-center justify-center shrink-0 border border-emerald-500/30 shadow-sm"><img src="/icon.svg" alt="Stockly" className="w-full h-full object-cover" /></div>
+              <div className="w-7 h-7 rounded-[7px] overflow-hidden flex items-center justify-center shrink-0 border border-white/10 shadow-sm"><img src="/icon.svg" alt="Stockly" className="w-full h-full object-cover" /></div>
               <span className="font-[var(--weight-medium)] text-[14px] text-[var(--text-primary)] tracking-tight whitespace-nowrap">
                 Stockly <span className="text-[var(--text-muted)] font-[var(--weight-regular)]">Finance</span>
               </span>
@@ -339,3 +339,4 @@ export default function StockDetailPage({
     </div>
   );
 }
+
