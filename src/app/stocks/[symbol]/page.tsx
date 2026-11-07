@@ -310,6 +310,8 @@ export default function StockDetailPage({
                   <div className="flex flex-col gap-[var(--space-4)]">
                     <InteractiveStockChart
                       symbol={stock.symbol}
+                      name={stock.name}
+                      exchange={stock.exchange}
                       currency={stock.currency}
                       initialPrice={stock.price}
                       initialChange={stock.change}

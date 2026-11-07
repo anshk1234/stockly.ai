@@ -119,3 +119,19 @@ body {
   animation: shimmerWave 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
   content: '';
 }
+
+@keyframes chartFadeIn {
+  from {
+    opacity: 0.25;
+    transform: scaleY(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+.animate-chart-fade-in {
+  animation: chartFadeIn 320ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform-origin: bottom center;
+}
