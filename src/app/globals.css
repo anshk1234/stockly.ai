@@ -50,6 +50,14 @@ body {
   font-feature-settings: "tnum" 1;
 }
 
+.text-positive {
+  color: var(--positive) !important;
+}
+
+.text-negative {
+  color: var(--negative) !important;
+}
+
 /* Custom graphite scrollbar */
 ::-webkit-scrollbar {
   width: 5px;

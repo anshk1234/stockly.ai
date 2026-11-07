@@ -70,7 +70,7 @@ export function SectionTitle({
   return (
     <div
       className={cn(
-        "flex items-center justify-between text-[var(--text-md)] font-[var(--weight-medium)] text-[var(--text-primary)] mb-[var(--space-3)]",
+        "flex items-center justify-between text-[13px] font-[var(--weight-medium)] text-[var(--text-muted)] mb-[var(--space-2)] tracking-tight",
         className
       )}
     >

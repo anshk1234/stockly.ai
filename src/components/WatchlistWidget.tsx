@@ -78,9 +78,7 @@ export function WatchlistWidget({
                     {formatPrice(stock.price, stock.currency, stock.symbol)}
                   </div>
                   <div
-                    className={`text-[11.5px] font-[var(--weight-medium)] tabular-nums mt-0.5 ${
-                      isPositive ? "text-[var(--positive)]" : "text-[var(--negative)]"
-                    }`}
+                    className={`text-[11.5px] font-[var(--weight-medium)] tabular-nums mt-0.5 ${isPositive ? "text-positive" : "text-negative"}`} style={{ color: isPositive ? "#3ecf8e" : "#f2555a" }}
                   >
                     {formatPercent(stock.changePercent)}
                   </div>

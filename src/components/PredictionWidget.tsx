@@ -61,7 +61,7 @@ export function PredictionWidget() {
       <div className="flex flex-col gap-[var(--space-3)]">
         {PREDICTION_DATA.map((card) => (
           <Card key={card.id} className="p-[16px]">
-            <div className="text-[var(--text-sm)] font-[var(--weight-medium)] text-[var(--text-primary)] mb-[var(--space-2)] leading-snug">
+            <div className="text-[13px] font-[var(--weight-medium)] text-[var(--text-primary)] mb-[var(--space-2)] leading-snug">
               {card.title}
             </div>
 
@@ -81,9 +81,7 @@ export function PredictionWidget() {
                       </span>
 
                       <div
-                        className={`flex items-center text-[var(--text-xs)] font-[var(--weight-medium)] tabular-nums ${
-                          isPositive ? "text-[var(--positive)]" : "text-[var(--negative)]"
-                        }`}
+                        className={`flex items-center gap-0.5 text-[var(--text-xs)] font-[var(--weight-medium)] tabular-nums ${isPositive ? "text-positive" : "text-negative"}`} style={{ color: isPositive ? "#3ecf8e" : "#f2555a" }}
                       >
                         {isPositive ? (
                           <ArrowUpRight className="w-3 h-3 stroke-[2]" />

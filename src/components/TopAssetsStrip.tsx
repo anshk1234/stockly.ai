@@ -68,9 +68,7 @@ export function TopAssetsStrip({
 
                   <div className="flex flex-col items-end shrink-0 tabular-nums">
                     <div
-                      className={`flex items-center gap-0.5 text-[11px] font-[var(--weight-medium)] leading-tight ${
-                        isPositive ? "text-[var(--positive)]" : "text-[var(--negative)]"
-                      }`}
+                      className={`flex items-center gap-0.5 text-[11px] font-[var(--weight-medium)] leading-tight ${isPositive ? "text-positive" : "text-negative"}`} style={{ color: isPositive ? "#3ecf8e" : "#f2555a" }}
                     >
                       {isPositive ? (
                         <ArrowUpRight className="w-3 h-3 stroke-[2.2]" />

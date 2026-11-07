@@ -362,9 +362,7 @@ export function InteractiveStockChart({
             </span>
 
             <div
-              className={`flex items-center text-[var(--text-sm)] font-[var(--weight-medium)] tabular-nums ${
-                isPositive ? "text-[var(--positive)]" : "text-[var(--negative)]"
-              }`}
+              className={`flex items-center text-[var(--text-sm)] font-[var(--weight-medium)] tabular-nums ${isPositive ? "text-positive" : "text-negative"}`} style={{ color: isPositive ? "#3ecf8e" : "#f2555a" }}
             >
               {isPositive ? (
                 <ArrowUpRight className="w-3.5 h-3.5 stroke-[2]" />

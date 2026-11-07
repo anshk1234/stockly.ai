@@ -327,9 +327,7 @@ export function SearchDropdown({ className, onSelectSymbol }: SearchDropdownProp
                               {formatPrice(asset.price, asset.currency, asset.symbol)}
                             </div>
                             <div
-                              className={`flex items-center justify-end gap-0.5 text-[11px] font-[var(--weight-medium)] tabular-nums ${
-                                isPositive ? "text-[var(--positive)]" : "text-[var(--negative)]"
-                              }`}
+                              className={`flex items-center justify-end gap-0.5 text-[11px] font-[var(--weight-medium)] tabular-nums ${isPositive ? "text-positive" : "text-negative"}`} style={{ color: isPositive ? "#3ecf8e" : "#f2555a" }}
                             >
                               {isPositive ? (
                                 <ArrowUpRight className="w-3 h-3 stroke-[2.2]" />
