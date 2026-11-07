@@ -1136,7 +1136,7 @@ export function InteractiveStockChart({
                 <stop
                   offset="0%"
                   stopColor={isComparing ? BASE_COLOR : isPositive ? "var(--positive)" : "var(--negative)"}
-                  stopOpacity={0.25}
+                  stopOpacity={0.2}
                 />
                 <stop
                   offset="100%"
