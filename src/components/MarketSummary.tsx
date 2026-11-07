@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp, ExternalLink, Clock } from "lucide-react";
 import { NewsItem } from "@/lib/types";
 import { formatTimeAgo } from "@/lib/utils";
 import { Card, SectionTitle } from "@/components/ui/layout";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 interface MarketSummaryProps {
   news: NewsItem[];
@@ -50,8 +51,34 @@ export function MarketSummary({
       {/* Grouped in ONE bordered card with hairline dividers */}
       <Card>
         {isLoading && news.length === 0 ? (
-          <div className="px-[16px] py-[14px] text-center text-[var(--text-xs)] text-[var(--text-muted)]">
-            Fetching live market intelligence from Yahoo Finance...
+          <div className="flex flex-col divide-y divide-[var(--border)]">
+            {/* Expanded Item Skeleton */}
+            <div className="px-[16px] py-[14px]">
+              <div className="flex items-center justify-between mb-3">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3.5 w-3.5 rounded" />
+              </div>
+              <div className="space-y-2 pt-1">
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-3 w-4/5" />
+              </div>
+              <div className="flex items-center justify-between pt-3">
+                <Skeleton className="h-2.5 w-28" />
+                <Skeleton className="h-2.5 w-20" />
+              </div>
+            </div>
+
+            {/* Collapsed Rows Skeleton */}
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="flex items-center justify-between px-[16px] py-[14px]">
+                <Skeleton
+                  className={`h-3.5 ${
+                    i === 0 ? "w-2/3" : i === 1 ? "w-4/5" : i === 2 ? "w-1/2" : "w-3/5"
+                  }`}
+                />
+                <Skeleton className="h-3.5 w-3.5 rounded" />
+              </div>
+            ))}
           </div>
         ) : news.length === 0 ? (
           <div className="px-[16px] py-[14px] text-center text-[var(--text-xs)] text-[var(--text-muted)]">

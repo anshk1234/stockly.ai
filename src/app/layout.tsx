@@ -12,6 +12,11 @@ export const metadata: Metadata = {
   title: "Stockly.ai | Real-Time Market Intelligence & Financial Terminal",
   description:
     "Live real-time market dashboard tracking India and global markets, stocks, crypto, sparklines, and market summaries powered by Yahoo Finance.",
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export default function RootLayout({

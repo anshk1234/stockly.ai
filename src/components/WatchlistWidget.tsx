@@ -7,6 +7,7 @@ import { AssetQuote } from "@/lib/types";
 import { formatPrice, formatPercent } from "@/lib/utils";
 import { Card, SectionTitle } from "@/components/ui/layout";
 import { TickerLogo } from "@/components/ui/TickerLogo";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 interface WatchlistWidgetProps {
   items: AssetQuote[];
@@ -45,8 +46,22 @@ export function WatchlistWidget({
       {/* ONE single bordered card with compact rows and hairline dividers */}
       <Card>
         {isLoading && items.length === 0 ? (
-          <div className="px-[16px] py-[14px] text-center text-[var(--text-xs)] text-[var(--text-muted)]">
-            Loading watchlist...
+          <div className="flex flex-col divide-y divide-[var(--border)]">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="flex items-center justify-between px-[16px] py-[14px]">
+                <div className="flex items-center gap-[var(--space-3)]">
+                  <Skeleton className="w-7 h-7 rounded-md shrink-0" />
+                  <div className="space-y-1.5">
+                    <Skeleton className={`h-3.5 ${i === 0 ? "w-28" : i === 1 ? "w-24" : "w-32"}`} />
+                    <Skeleton className="h-2.5 w-16" />
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-1.5">
+                  <Skeleton className="h-3.5 w-16" />
+                  <Skeleton className="h-2.5 w-10" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           items.map((stock) => {
@@ -78,7 +93,8 @@ export function WatchlistWidget({
                     {formatPrice(stock.price, stock.currency, stock.symbol)}
                   </div>
                   <div
-                    className={`text-[11.5px] font-[var(--weight-medium)] tabular-nums mt-0.5 ${isPositive ? "text-positive" : "text-negative"}`} style={{ color: isPositive ? "#3ecf8e" : "#f2555a" }}
+                    className={`text-[11.5px] font-[var(--weight-medium)] tabular-nums mt-0.5 ${isPositive ? "text-positive" : "text-negative"}`}
+                    style={{ color: isPositive ? "#3ecf8e" : "#f2555a" }}
                   >
                     {formatPercent(stock.changePercent)}
                   </div>

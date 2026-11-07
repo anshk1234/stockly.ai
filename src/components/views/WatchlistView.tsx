@@ -127,22 +127,22 @@ export function WatchlistView({
                         {formatPrice(stock.price, stock.currency)}
                       </td>
                       <td className={`px-[16px] py-[12px] text-right font-[var(--weight-medium)] tabular-nums ${
-                        (stock.perf1D ?? stock.changePercent) >= 0 ? "text-[var(--positive)]" : "text-[var(--negative)]"
+                        (stock.perf1D ?? stock.changePercent) >= 0 ? "text-positive" : "text-negative"
                       }`}>
                         {formatPercent(stock.perf1D ?? stock.changePercent)}
                       </td>
                       <td className={`px-[16px] py-[12px] text-right font-[var(--weight-medium)] tabular-nums ${
-                        (stock.perf5D ?? 2.03) >= 0 ? "text-[var(--positive)]" : "text-[var(--negative)]"
+                        (stock.perf5D ?? 2.03) >= 0 ? "text-positive" : "text-negative"
                       }`}>
                         {formatPercent(stock.perf5D ?? 2.03)}
                       </td>
                       <td className={`px-[16px] py-[12px] text-right font-[var(--weight-medium)] tabular-nums ${
-                        (stock.perf1M ?? 1.25) >= 0 ? "text-[var(--positive)]" : "text-[var(--negative)]"
+                        (stock.perf1M ?? 1.25) >= 0 ? "text-positive" : "text-negative"
                       }`}>
                         {formatPercent(stock.perf1M ?? 1.25)}
                       </td>
                       <td className={`px-[16px] py-[12px] text-right font-[var(--weight-medium)] tabular-nums ${
-                        (stock.perf6M ?? 29.46) >= 0 ? "text-[var(--positive)]" : "text-[var(--negative)]"
+                        (stock.perf6M ?? 29.46) >= 0 ? "text-positive" : "text-negative"
                       }`}>
                         {formatPercent(stock.perf6M ?? 29.46)}
                       </td>
