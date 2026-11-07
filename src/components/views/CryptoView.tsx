@@ -109,9 +109,9 @@ export function CryptoView({
             {[...Array(3)].map((_, i) => (
               <div
                 key={i}
-                className="bg-[var(--bg-card)] border border-[var(--border)] rounded-[var(--radius-lg)] p-[14px] flex flex-col justify-between h-[104px]"
+                className="bg-[var(--bg-card)] border border-[var(--border)] rounded-[var(--radius-card)] overflow-hidden flex flex-col justify-between"
               >
-                <div className="flex items-start justify-between">
+                <div className="px-3.5 pt-3 pb-1 flex items-start justify-between">
                   <div className="space-y-1.5">
                     <Skeleton className="h-3 w-16" />
                     <Skeleton className="h-4 w-20" />
@@ -121,7 +121,7 @@ export function CryptoView({
                     <Skeleton className="h-2.5 w-10" />
                   </div>
                 </div>
-                <Skeleton className="h-7 w-full rounded" />
+                <Skeleton className="h-11 w-full rounded-none" />
               </div>
             ))}
           </div>
@@ -134,9 +134,9 @@ export function CryptoView({
                 <Link
                   key={coin.symbol}
                   href={`/stocks/${coin.symbol}`}
-                  className="group relative flex flex-col justify-between bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] border border-[var(--border)] rounded-[var(--radius-lg)] pt-[14px] px-[14px] pb-0 transition-all overflow-hidden h-[104px] shadow-sm hover:shadow"
+                  className="group relative flex flex-col justify-between bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] border border-[var(--border)] rounded-[var(--radius-card)] overflow-hidden transition-colors shadow-sm cursor-pointer"
                 >
-                  <div className="flex items-start justify-between z-10">
+                  <div className="px-3.5 pt-3 pb-1 flex items-start justify-between z-10">
                     <div>
                       <div className="text-[12px] font-[var(--weight-regular)] text-[var(--text-muted)] leading-tight group-hover:text-[var(--text-primary)] transition-colors">
                         {coin.name}

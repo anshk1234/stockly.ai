@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     const data = await getMarketSummary(category);
     return NextResponse.json(data, {
       headers: {
-        "Cache-Control": "public, s-maxage=1800, stale-while-revalidate=3600",
+        "Cache-Control": "public, s-maxage=900, stale-while-revalidate=1800",
       },
     });
   } catch (error) {
