@@ -480,26 +480,106 @@ export function InteractiveStockChart({
     });
   }, [visibleCandles, chartWidth, chartHeight, minPrice, priceRange, maxVolume, padding]);
 
+  // Resample visible candles to N uniformly spaced Y coordinates for liquid curve morphing
+  const SAMPLE_POINTS = 100;
+  const targetYPoints = useMemo(() => {
+    if (!visibleCandles || visibleCandles.length === 0) return [];
+    const len = visibleCandles.length;
+    const result: number[] = [];
+    const pRange = priceRange || 1;
+
+    for (let k = 0; k < SAMPLE_POINTS; k++) {
+      const ratio = k / (SAMPLE_POINTS - 1);
+      const floatIdx = ratio * (len - 1);
+      const lowIdx = Math.floor(floatIdx);
+      const highIdx = Math.min(len - 1, lowIdx + 1);
+      const frac = floatIdx - lowIdx;
+
+      const pLow = visibleCandles[lowIdx].close;
+      const pHigh = visibleCandles[highIdx].close;
+      const priceVal = pLow * (1 - frac) + pHigh * frac;
+
+      const y = padding.top + chartHeight - ((priceVal - minPrice) / pRange) * chartHeight;
+      result.push(y);
+    }
+    return result;
+  }, [visibleCandles, minPrice, priceRange, chartHeight, padding.top]);
+
+  // Smooth requestAnimationFrame morphing state
+  const [animY, setAnimY] = useState<number[] | null>(null);
+  const currentYRef = useRef<number[] | null>(null);
+  const rafIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!targetYPoints || targetYPoints.length === 0) return;
+
+    if (!currentYRef.current) {
+      currentYRef.current = targetYPoints;
+      setAnimY(targetYPoints);
+      return;
+    }
+
+    if (rafIdRef.current) {
+      cancelAnimationFrame(rafIdRef.current);
+    }
+
+    const startY = [...currentYRef.current];
+    const endY = targetYPoints;
+    const startTime = performance.now();
+    const duration = 380; // 380ms smooth liquid curve morph
+
+    const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+
+    const step = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(1, elapsed / duration);
+      const eased = easeOutCubic(progress);
+
+      const next = startY.map((s, idx) => s + (endY[idx] - s) * eased);
+      currentYRef.current = next;
+      setAnimY(next);
+
+      if (progress < 1) {
+        rafIdRef.current = requestAnimationFrame(step);
+      } else {
+        rafIdRef.current = null;
+      }
+    };
+
+    rafIdRef.current = requestAnimationFrame(step);
+
+    return () => {
+      if (rafIdRef.current) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+    };
+  }, [targetYPoints]);
+
   const linePathD = useMemo(() => {
-    if (points.length < 2) return "";
-    return points.reduce((acc, pt, idx, arr) => {
-      if (idx === 0) return `M ${pt.x.toFixed(1)},${pt.y.toFixed(1)}`;
-      const prev = arr[idx - 1];
-      const cp1x = prev.x + (pt.x - prev.x) / 2;
-      const cp1y = prev.y;
-      const cp2x = prev.x + (pt.x - prev.x) / 2;
-      const cp2y = pt.y;
-      return `${acc} C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${pt.x.toFixed(1)},${pt.y.toFixed(1)}`;
+    const yList = animY || targetYPoints;
+    if (!yList || yList.length < 2) return "";
+    const stepX = chartWidth / (yList.length - 1);
+
+    return yList.reduce((acc, y, idx) => {
+      const x = padding.left + idx * stepX;
+      if (idx === 0) return `M ${x.toFixed(1)},${y.toFixed(1)}`;
+      const prevX = padding.left + (idx - 1) * stepX;
+      const prevY = yList[idx - 1];
+      const cp1x = prevX + (x - prevX) / 2;
+      const cp1y = prevY;
+      const cp2x = prevX + (x - prevX) / 2;
+      const cp2y = y;
+      return `${acc} C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${x.toFixed(1)},${y.toFixed(1)}`;
     }, "");
-  }, [points]);
+  }, [animY, targetYPoints, chartWidth, padding.left]);
 
   const areaPathD = useMemo(() => {
-    if (points.length < 2 || !linePathD) return "";
-    const last = points[points.length - 1];
-    const first = points[0];
+    if (!linePathD) return "";
+    const rightX = padding.left + chartWidth;
     const bottomY = padding.top + chartHeight;
-    return `${linePathD} L ${last.x.toFixed(1)},${bottomY} L ${first.x.toFixed(1)},${bottomY} Z`;
-  }, [linePathD, points, padding, chartHeight]);
+    const leftX = padding.left;
+    return `${linePathD} L ${rightX.toFixed(1)},${bottomY.toFixed(1)} L ${leftX.toFixed(1)},${bottomY.toFixed(1)} Z`;
+  }, [linePathD, chartWidth, chartHeight, padding.left, padding.top]);
 
   const prevCloseY = useMemo(() => {
     if (previousClose <= 0 || isComparing) return null;
@@ -983,14 +1063,13 @@ export function InteractiveStockChart({
           </div>
         </div>
 
-        {/* Interactive Chart Canvas & SVG Container with smooth range switch fade animation */}
+        {/* Interactive Chart Canvas & SVG Container */}
         <div
-          key={currentRange}
           ref={containerRef}
           onMouseDown={handleMouseDown}
           onMouseUp={handleMouseUp}
           onDoubleClick={() => !isComparing && setViewWindow(null)}
-          className={`animate-chart-fade-in relative w-full select-none mt-2 ${
+          className={`relative w-full select-none mt-2 ${
             isComparing
               ? "cursor-crosshair"
               : viewWindow
