@@ -505,20 +505,38 @@ export function InteractiveStockChart({
     return result;
   }, [visibleCandles, minPrice, priceRange, chartHeight, padding.top]);
 
-  // Smooth requestAnimationFrame morphing state
+  // Smooth requestAnimationFrame morphing state - strictly for timeframe switches
   const [animY, setAnimY] = useState<number[] | null>(null);
   const currentYRef = useRef<number[] | null>(null);
   const rafIdRef = useRef<number | null>(null);
+  const prevRangeRef = useRef<TimeRange>(currentRange);
 
   useEffect(() => {
     if (!targetYPoints || targetYPoints.length === 0) return;
 
+    // Initial mount
     if (!currentYRef.current) {
       currentYRef.current = targetYPoints;
-      setAnimY(targetYPoints);
+      prevRangeRef.current = currentRange;
+      setAnimY(null);
       return;
     }
 
+    const isRangeSwitch = prevRangeRef.current !== currentRange;
+    prevRangeRef.current = currentRange;
+
+    // If NOT a range switch (i.e. mouse wheel zoom in/out or drag pan), update instantly with NO animation lag
+    if (!isRangeSwitch) {
+      if (rafIdRef.current) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
+      currentYRef.current = targetYPoints;
+      setAnimY(null);
+      return;
+    }
+
+    // Timeframe switch (1D -> 5D, etc.) -> Trigger smooth liquid curve morph
     if (rafIdRef.current) {
       cancelAnimationFrame(rafIdRef.current);
     }
@@ -543,6 +561,7 @@ export function InteractiveStockChart({
         rafIdRef.current = requestAnimationFrame(step);
       } else {
         rafIdRef.current = null;
+        setAnimY(null);
       }
     };
 
@@ -553,25 +572,37 @@ export function InteractiveStockChart({
         cancelAnimationFrame(rafIdRef.current);
       }
     };
-  }, [targetYPoints]);
+  }, [currentRange, targetYPoints]);
 
   const linePathD = useMemo(() => {
-    const yList = animY || targetYPoints;
-    if (!yList || yList.length < 2) return "";
-    const stepX = chartWidth / (yList.length - 1);
+    // If currently morphing between timeframes, use the interpolated animY points
+    if (animY && animY.length >= 2) {
+      const stepX = chartWidth / (animY.length - 1);
+      return animY.reduce((acc, y, idx) => {
+        const x = padding.left + idx * stepX;
+        if (idx === 0) return `M ${x.toFixed(1)},${y.toFixed(1)}`;
+        const prevX = padding.left + (idx - 1) * stepX;
+        const prevY = animY[idx - 1];
+        const cp1x = prevX + (x - prevX) / 2;
+        const cp1y = prevY;
+        const cp2x = prevX + (x - prevX) / 2;
+        const cp2y = y;
+        return `${acc} C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${x.toFixed(1)},${y.toFixed(1)}`;
+      }, "");
+    }
 
-    return yList.reduce((acc, y, idx) => {
-      const x = padding.left + idx * stepX;
-      if (idx === 0) return `M ${x.toFixed(1)},${y.toFixed(1)}`;
-      const prevX = padding.left + (idx - 1) * stepX;
-      const prevY = yList[idx - 1];
-      const cp1x = prevX + (x - prevX) / 2;
-      const cp1y = prevY;
-      const cp2x = prevX + (x - prevX) / 2;
-      const cp2y = y;
-      return `${acc} C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${x.toFixed(1)},${y.toFixed(1)}`;
+    // Normal mode (and during wheel zoom in/out or panning): render exact points instantaneously
+    if (points.length < 2) return "";
+    return points.reduce((acc, pt, idx, arr) => {
+      if (idx === 0) return `M ${pt.x.toFixed(1)},${pt.y.toFixed(1)}`;
+      const prev = arr[idx - 1];
+      const cp1x = prev.x + (pt.x - prev.x) / 2;
+      const cp1y = prev.y;
+      const cp2x = prev.x + (pt.x - prev.x) / 2;
+      const cp2y = pt.y;
+      return `${acc} C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${pt.x.toFixed(1)},${pt.y.toFixed(1)}`;
     }, "");
-  }, [animY, targetYPoints, chartWidth, padding.left]);
+  }, [animY, points, chartWidth, padding.left]);
 
   const areaPathD = useMemo(() => {
     if (!linePathD) return "";
