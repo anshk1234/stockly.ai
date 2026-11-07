@@ -272,11 +272,13 @@ export async function getStockChart(
       switch (range) {
         case "1D":
           interval = "5m";
-          period1 = new Date(now - 1 * 24 * 60 * 60 * 1000);
+          // Query 5 days back so weekends and bank holidays resolve the latest active session
+          period1 = new Date(now - 5 * 24 * 60 * 60 * 1000);
           break;
         case "5D":
           interval = "15m";
-          period1 = new Date(now - 5 * 24 * 60 * 60 * 1000);
+          // Query 8 days back to guarantee covering 5 trading days across weekends
+          period1 = new Date(now - 8 * 24 * 60 * 60 * 1000);
           break;
         case "1M":
           interval = "1d";
@@ -306,8 +308,33 @@ export async function getStockChart(
       }
 
       const result = await yf.chart(symbol, { period1, interval });
-      const quotes = result?.quotes || [];
-      const previousClose = result?.meta?.chartPreviousClose ?? result?.meta?.previousClose ?? 0;
+      let quotes = (result?.quotes || []).filter(
+        (q) => q.close !== null && q.close !== undefined && !isNaN(q.close)
+      );
+
+      // For 1D charts, isolate the single most recent active trading day/session (or rolling 24h for crypto)
+      if (range === "1D" && quotes.length > 0) {
+        const isCrypto = symbol.endsWith("-USD");
+        if (isCrypto) {
+          const cutoff = now - 24 * 60 * 60 * 1000;
+          quotes = quotes.filter((q) => q.date && new Date(q.date).getTime() >= cutoff);
+        } else {
+          const regularStart = result?.meta?.currentTradingPeriod?.regular?.start;
+          if (regularStart) {
+            const startMs = new Date(regularStart).getTime();
+            quotes = quotes.filter((q) => q.date && new Date(q.date).getTime() >= startMs);
+          } else {
+            // Fallback: take candles from the last 10 hours of the latest candle
+            const lastMs = new Date(quotes[quotes.length - 1].date).getTime();
+            quotes = quotes.filter((q) => q.date && new Date(q.date).getTime() >= lastMs - 10 * 60 * 60 * 1000);
+          }
+        }
+      }
+
+      const previousClose =
+        range === "1D"
+          ? result?.meta?.previousClose ?? result?.meta?.chartPreviousClose ?? 0
+          : result?.meta?.chartPreviousClose ?? result?.meta?.previousClose ?? 0;
 
       const candles: CandlePoint[] = quotes
         .filter((q) => q.close !== null && q.close !== undefined && !isNaN(q.close))
