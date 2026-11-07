@@ -505,11 +505,22 @@ export function InteractiveStockChart({
     return result;
   }, [visibleCandles, minPrice, priceRange, chartHeight, padding.top]);
 
-  // Smooth requestAnimationFrame morphing state - strictly for timeframe switches
+  // Liquid curve morphing state - strictly for timeframe switches (1D, 5D, 1M, etc.)
   const [animY, setAnimY] = useState<number[] | null>(null);
   const currentYRef = useRef<number[] | null>(null);
   const rafIdRef = useRef<number | null>(null);
-  const prevRangeRef = useRef<TimeRange>(currentRange);
+  const prevCandlesRef = useRef<CandlePoint[]>(candles);
+  const isTimeframeSwitchRef = useRef<boolean>(false);
+
+  // Timeframe range button click handler
+  const handleRangeClick = (r: TimeRange) => {
+    if (r === currentRange) return;
+    if (targetYPoints && targetYPoints.length > 0) {
+      currentYRef.current = animY || targetYPoints;
+    }
+    isTimeframeSwitchRef.current = true;
+    onRangeChange(r);
+  };
 
   useEffect(() => {
     if (!targetYPoints || targetYPoints.length === 0) return;
@@ -517,16 +528,19 @@ export function InteractiveStockChart({
     // Initial mount
     if (!currentYRef.current) {
       currentYRef.current = targetYPoints;
-      prevRangeRef.current = currentRange;
+      prevCandlesRef.current = candles;
       setAnimY(null);
       return;
     }
 
-    const isRangeSwitch = prevRangeRef.current !== currentRange;
-    prevRangeRef.current = currentRange;
+    const candlesChanged = prevCandlesRef.current !== candles;
+    prevCandlesRef.current = candles;
 
-    // If NOT a range switch (i.e. mouse wheel zoom in/out or drag pan), update instantly with NO animation lag
-    if (!isRangeSwitch) {
+    const isRangeSwitch = isTimeframeSwitchRef.current || (candlesChanged && viewWindow === null && !isPanning);
+    isTimeframeSwitchRef.current = false;
+
+    // If mouse wheel zoom in/out or drag-panning, update INSTANTLY with 0ms lag
+    if (!isRangeSwitch || viewWindow !== null || isPanning) {
       if (rafIdRef.current) {
         cancelAnimationFrame(rafIdRef.current);
         rafIdRef.current = null;
@@ -544,7 +558,7 @@ export function InteractiveStockChart({
     const startY = [...currentYRef.current];
     const endY = targetYPoints;
     const startTime = performance.now();
-    const duration = 380; // 380ms smooth liquid curve morph
+    const duration = 400; // 400ms smooth liquid curve morph
 
     const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
 
@@ -572,7 +586,7 @@ export function InteractiveStockChart({
         cancelAnimationFrame(rafIdRef.current);
       }
     };
-  }, [currentRange, targetYPoints]);
+  }, [candles, targetYPoints, viewWindow, isPanning]);
 
   const linePathD = useMemo(() => {
     // If currently morphing between timeframes, use the interpolated animY points
@@ -774,11 +788,11 @@ export function InteractiveStockChart({
   return (
     <>
       <Card
-        className={`relative flex flex-col transition-all duration-300 ${
+        className={
           isFullscreen
-            ? "fixed inset-0 z-50 bg-[#090a0b]/98 backdrop-blur-2xl p-6 md:p-8 overflow-y-auto animate-in fade-in zoom-in-95"
-            : "p-[16px]"
-        }`}
+            ? "fixed inset-0 z-50 bg-[#090a0b]/98 backdrop-blur-2xl p-6 md:p-8 overflow-y-auto flex flex-col justify-between animate-in fade-in zoom-in-95"
+            : "p-[16px] relative flex flex-col"
+        }
       >
         {/* Chart Top Metrics Header */}
         <div className="flex flex-wrap items-baseline justify-between gap-[var(--space-4)] mb-[var(--space-3)]">
@@ -829,7 +843,7 @@ export function InteractiveStockChart({
               return (
                 <button
                   key={r}
-                  onClick={() => onRangeChange(r)}
+                  onClick={() => handleRangeClick(r)}
                   className={`px-2 py-0.5 rounded-md font-[var(--weight-medium)] transition-colors ${
                     isActive
                       ? "bg-[var(--bg-card-hover)] text-[var(--text-primary)] border border-[var(--border)]"
