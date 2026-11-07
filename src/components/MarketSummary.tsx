@@ -7,20 +7,28 @@ import { formatTimeAgo } from "@/lib/utils";
 import { Card, SectionTitle } from "@/components/ui/layout";
 import { Skeleton } from "@/components/ui/Skeleton";
 
+export interface SourceItem {
+  name: string;
+  domain?: string;
+  favicon?: string;
+}
+
 interface MarketSummaryProps {
   news: NewsItem[];
   isLoading: boolean;
   lastUpdated: Date | null;
+  sourcesCount?: number;
+  sources?: SourceItem[];
 }
 
 export function MarketSummary({
   news,
   isLoading,
   lastUpdated,
+  sourcesCount = 0,
+  sources = [],
 }: MarketSummaryProps) {
-  const [expandedId, setExpandedId] = useState<string | null>(
-    news.length > 0 ? news[0].id : null
-  );
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   React.useEffect(() => {
     if (news.length > 0 && !expandedId) {
@@ -32,6 +40,8 @@ export function MarketSummary({
     setExpandedId((prev) => (prev === id ? null : id));
   };
 
+  const effectiveSourcesCount = sourcesCount || (sources.length > 0 ? sources.length : news.length);
+
   return (
     <div className="w-full">
       {/* Section Title */}
@@ -40,7 +50,7 @@ export function MarketSummary({
           <div className="flex items-center gap-1.5 text-[var(--text-xs)] text-[var(--text-muted)] font-[var(--weight-regular)]">
             <Clock className="w-3 h-3" />
             <span>
-              {lastUpdated ? `Updated ${formatTimeAgo(lastUpdated)}` : "Fetching updates..."}
+              {lastUpdated ? `Updated ${formatTimeAgo(lastUpdated)}` : "Updating hourly..."}
             </span>
           </div>
         }
@@ -48,8 +58,8 @@ export function MarketSummary({
         Market Summary
       </SectionTitle>
 
-      {/* Grouped in ONE bordered card with hairline dividers */}
-      <Card>
+      {/* Grouped in ONE bordered card with hairline dividers (Perplexity style) */}
+      <Card className="overflow-hidden">
         {isLoading && news.length === 0 ? (
           <div className="flex flex-col divide-y divide-[var(--border)]">
             {/* Expanded Item Skeleton */}
@@ -69,7 +79,7 @@ export function MarketSummary({
             </div>
 
             {/* Collapsed Rows Skeleton */}
-            {[...Array(4)].map((_, i) => (
+            {[...Array(5)].map((_, i) => (
               <div key={i} className="flex items-center justify-between px-[16px] py-[14px]">
                 <Skeleton
                   className={`h-3.5 ${
@@ -81,68 +91,110 @@ export function MarketSummary({
             ))}
           </div>
         ) : news.length === 0 ? (
-          <div className="px-[16px] py-[14px] text-center text-[var(--text-xs)] text-[var(--text-muted)]">
+          <div className="px-[16px] py-[24px] text-center text-[var(--text-xs)] text-[var(--text-muted)]">
             No market updates available at the moment.
           </div>
         ) : (
-          news.map((item, index) => {
-            const isExpanded = expandedId === item.id || (!expandedId && index === 0);
+          <div>
+            <div className="divide-y divide-[var(--border)]">
+              {news.map((item, index) => {
+                const isExpanded = expandedId === item.id || (!expandedId && index === 0);
 
-            return (
-              <div
-                key={item.id}
-                className="border-b border-[var(--border)] last:border-b-0 transition-colors"
-              >
-                {/* Header row */}
-                <button
-                  onClick={() => toggleItem(item.id)}
-                  className="w-full flex items-center justify-between px-[16px] py-[14px] text-left hover:bg-[var(--bg-card-hover)] transition-colors"
-                >
-                  <span className="text-[var(--text-sm)] font-[var(--weight-medium)] text-[var(--text-primary)] pr-[var(--space-2)]">
-                    {item.title}
-                  </span>
-
-                  <div className="text-[var(--text-muted)] shrink-0">
-                    {isExpanded ? (
-                      <ChevronUp className="w-4 h-4 text-[var(--text-primary)]" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4 text-[var(--text-muted)]" />
-                    )}
-                  </div>
-                </button>
-
-                {/* Expanded content */}
-                {isExpanded && (
-                  <div className="px-[16px] pb-[14px] pt-1 text-[var(--text-xs)] text-[var(--text-muted)] leading-relaxed bg-[var(--bg-page)]/40 border-t border-[var(--border)]">
-                    <p className="mb-2">
-                      {item.summary ||
-                        "Key benchmark indices continue to react to macroeconomic triggers, institutional flows, and quarterly corporate developments reported in the global markets dispatch."}
-                    </p>
-
-                    <div className="flex items-center justify-between text-[var(--text-xs)] pt-1">
-                      <span className="flex items-center gap-1.5 text-[var(--text-muted)] font-[var(--weight-regular)]">
-                        <span>{item.publisher}</span>
-                        <span>•</span>
-                        <span>{formatTimeAgo(item.publishedAt)}</span>
+                return (
+                  <div key={item.id} className="transition-colors group">
+                    {/* Header row */}
+                    <button
+                      onClick={() => toggleItem(item.id)}
+                      className="w-full flex items-center justify-between px-[16px] py-[13px] text-left hover:bg-[var(--bg-card-hover)] transition-colors"
+                    >
+                      <span className="text-[13.5px] font-[var(--weight-medium)] text-[var(--text-primary)] pr-3 leading-snug group-hover:text-white transition-colors">
+                        {item.title}
                       </span>
 
-                      {item.link && (
-                        <a
-                          href={item.link}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="flex items-center gap-1 text-[var(--positive)] hover:underline transition-colors"
-                        >
-                          <span>Read full report</span>
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      )}
-                    </div>
+                      <div className="text-[var(--text-muted)] shrink-0 ml-2">
+                        {isExpanded ? (
+                          <ChevronUp className="w-4 h-4 text-[var(--text-primary)]" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4 text-[var(--text-muted)]" />
+                        )}
+                      </div>
+                    </button>
+
+                    {/* Expanded content */}
+                    {isExpanded && (
+                      <div className="px-[16px] pb-[14px] pt-1 text-[13px] text-[var(--text-muted)] leading-relaxed bg-[var(--bg-page)]/30 border-t border-[var(--border)]/60">
+                        <p className="mb-3 text-[var(--text-secondary)]">
+                          {item.summary ||
+                            "Key benchmark indices continue to react to macroeconomic triggers, institutional flows, and quarterly corporate developments reported in the global markets dispatch."}
+                        </p>
+
+                        <div className="flex items-center justify-between text-[11.5px] pt-1">
+                          <span className="flex items-center gap-1.5 text-[var(--text-muted)] font-[var(--weight-regular)]">
+                            <span className="text-[var(--text-primary)] font-[var(--weight-medium)]">
+                              {item.publisher}
+                            </span>
+                            <span>•</span>
+                            <span>{formatTimeAgo(item.publishedAt)}</span>
+                          </span>
+
+                          {item.link && (
+                            <a
+                              href={item.link}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-[var(--positive)] hover:underline font-[var(--weight-medium)] transition-colors"
+                            >
+                              <span>Read full report</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
+                );
+              })}
+            </div>
+
+            {/* Perplexity-style Footer: Verified Sources bar */}
+            {effectiveSourcesCount > 0 && (
+              <div className="px-[16px] py-[10px] bg-[var(--bg-page)]/40 border-t border-[var(--border)] flex items-center justify-between text-[12px] text-[var(--text-muted)]">
+                <div className="flex items-center gap-2">
+                  {/* Small overlapping source icons */}
+                  <div className="flex items-center -space-x-1.5 overflow-hidden">
+                    {sources.slice(0, 5).map((s, idx) => (
+                      <span
+                        key={idx}
+                        title={s.name}
+                        className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-neutral-800 border border-neutral-700 overflow-hidden text-[9px] font-bold text-neutral-300 shrink-0"
+                      >
+                        {s.favicon ? (
+                          <img
+                            src={s.favicon}
+                            alt={s.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = "none";
+                            }}
+                          />
+                        ) : (
+                          s.name.charAt(0)
+                        )}
+                      </span>
+                    ))}
+                  </div>
+
+                  <span className="font-[var(--weight-medium)] text-[var(--text-secondary)]">
+                    {effectiveSourcesCount} sources
+                  </span>
+                </div>
+
+                <span className="text-[11px] text-[var(--text-muted)]">
+                  Live Wire • Updated Hourly
+                </span>
               </div>
-            );
-          })
+            )}
+          </div>
         )}
       </Card>
     </div>

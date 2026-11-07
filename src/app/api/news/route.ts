@@ -1,23 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getMarketNews } from "@/lib/yahoo";
+import { getMarketSummary } from "@/lib/news";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const category = (searchParams.get("category") || searchParams.get("region") || "IN").toUpperCase() as
-    | "IN"
-    | "US"
-    | "CRYPTO";
+  const category = (
+    searchParams.get("category") ||
+    searchParams.get("region") ||
+    "IN"
+  ).toUpperCase() as "IN" | "US" | "CRYPTO";
 
   try {
-    const news = await getMarketNews(category);
-    return NextResponse.json({ news }, {
+    const data = await getMarketSummary(category);
+    return NextResponse.json(data, {
       headers: {
-        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+        "Cache-Control": "public, s-maxage=1800, stale-while-revalidate=3600",
       },
     });
   } catch (error) {
+    console.error("Failed to fetch market news summary:", error);
     return NextResponse.json({ error: "Failed to fetch news" }, { status: 500 });
   }
 }
