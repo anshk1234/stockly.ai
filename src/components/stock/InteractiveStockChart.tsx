@@ -480,26 +480,95 @@ export function InteractiveStockChart({
     });
   }, [visibleCandles, chartWidth, chartHeight, minPrice, priceRange, maxVolume, padding]);
 
+  // Resample visible candles to N uniformly spaced Y coordinates for liquid curve morphing
+  const SAMPLE_POINTS = 100;
+  const targetYPoints = useMemo(() => {
+    if (!visibleCandles || visibleCandles.length === 0) return [];
+    const len = visibleCandles.length;
+    const result: number[] = [];
+    const pRange = priceRange || 1;
+
+    for (let k = 0; k < SAMPLE_POINTS; k++) {
+      const ratio = k / (SAMPLE_POINTS - 1);
+      const floatIdx = ratio * (len - 1);
+      const lowIdx = Math.floor(floatIdx);
+      const highIdx = Math.min(len - 1, lowIdx + 1);
+      const frac = floatIdx - lowIdx;
+
+      const pLow = visibleCandles[lowIdx].close;
+      const pHigh = visibleCandles[highIdx].close;
+      const priceVal = pLow * (1 - frac) + pHigh * frac;
+
+      const y = padding.top + chartHeight - ((priceVal - minPrice) / pRange) * chartHeight;
+      result.push(y);
+    }
+    return result;
+  }, [visibleCandles, minPrice, priceRange, chartHeight, padding.top]);
+
+  // Timeframe animation tracking
+  const [isTimeframeTransition, setIsTimeframeTransition] = useState(false);
+  const transitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Timeframe range button click handler
+  const handleRangeClick = (r: TimeRange) => {
+    if (r === currentRange) return;
+    setIsTimeframeTransition(true);
+    if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
+    transitionTimeoutRef.current = setTimeout(() => {
+      setIsTimeframeTransition(false);
+    }, 450);
+    onRangeChange(r);
+  };
+
+  // If user begins zooming or panning, immediately disable any timeframe transition
+  useEffect(() => {
+    if (viewWindow !== null || isPanning) {
+      setIsTimeframeTransition(false);
+      if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
+    }
+  }, [viewWindow, isPanning]);
+
+  // Construct smooth SVG paths:
+  // - When full view (timeframe view): uses normalized 100 control points so SVG 'd' transitions natively across timeframes!
+  // - When zoomed in (scroll wheel / pan): uses exact points for 100% precision with 0ms lag!
   const linePathD = useMemo(() => {
-    if (points.length < 2) return "";
-    return points.reduce((acc, pt, idx, arr) => {
-      if (idx === 0) return `M ${pt.x.toFixed(1)},${pt.y.toFixed(1)}`;
-      const prev = arr[idx - 1];
-      const cp1x = prev.x + (pt.x - prev.x) / 2;
-      const cp1y = prev.y;
-      const cp2x = prev.x + (pt.x - prev.x) / 2;
-      const cp2y = pt.y;
-      return `${acc} C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${pt.x.toFixed(1)},${pt.y.toFixed(1)}`;
+    if (viewWindow !== null) {
+      // Zoomed in: exact points directly
+      if (points.length < 2) return "";
+      return points.reduce((acc, pt, idx, arr) => {
+        if (idx === 0) return `M ${pt.x.toFixed(1)},${pt.y.toFixed(1)}`;
+        const prev = arr[idx - 1];
+        const cp1x = prev.x + (pt.x - prev.x) / 2;
+        const cp1y = prev.y;
+        const cp2x = prev.x + (pt.x - prev.x) / 2;
+        const cp2y = pt.y;
+        return `${acc} C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${pt.x.toFixed(1)},${pt.y.toFixed(1)}`;
+      }, "");
+    }
+
+    // Full range: 100 uniformly spaced control points for seamless native curve morphing
+    if (!targetYPoints || targetYPoints.length < 2) return "";
+    const stepX = chartWidth / (targetYPoints.length - 1);
+    return targetYPoints.reduce((acc, y, idx) => {
+      const x = padding.left + idx * stepX;
+      if (idx === 0) return `M ${x.toFixed(1)},${y.toFixed(1)}`;
+      const prevX = padding.left + (idx - 1) * stepX;
+      const prevY = targetYPoints[idx - 1];
+      const cp1x = prevX + (x - prevX) / 2;
+      const cp1y = prevY;
+      const cp2x = prevX + (x - prevX) / 2;
+      const cp2y = y;
+      return `${acc} C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${x.toFixed(1)},${y.toFixed(1)}`;
     }, "");
-  }, [points]);
+  }, [viewWindow, points, targetYPoints, chartWidth, padding.left]);
 
   const areaPathD = useMemo(() => {
-    if (points.length < 2 || !linePathD) return "";
-    const last = points[points.length - 1];
-    const first = points[0];
+    if (!linePathD) return "";
+    const rightX = padding.left + chartWidth;
     const bottomY = padding.top + chartHeight;
-    return `${linePathD} L ${last.x.toFixed(1)},${bottomY} L ${first.x.toFixed(1)},${bottomY} Z`;
-  }, [linePathD, points, padding, chartHeight]);
+    const leftX = padding.left;
+    return `${linePathD} L ${rightX.toFixed(1)},${bottomY.toFixed(1)} L ${leftX.toFixed(1)},${bottomY.toFixed(1)} Z`;
+  }, [linePathD, chartWidth, chartHeight, padding.left, padding.top]);
 
   const prevCloseY = useMemo(() => {
     if (previousClose <= 0 || isComparing) return null;
@@ -663,11 +732,11 @@ export function InteractiveStockChart({
   return (
     <>
       <Card
-        className={`relative flex flex-col transition-all duration-300 ${
+        className={
           isFullscreen
-            ? "fixed inset-0 z-50 bg-[#090a0b]/98 backdrop-blur-2xl p-6 md:p-8 overflow-y-auto animate-in fade-in zoom-in-95"
-            : "p-[16px]"
-        }`}
+            ? "fixed inset-0 z-50 bg-[#090a0b]/98 backdrop-blur-2xl p-6 md:p-8 overflow-y-auto flex flex-col justify-between animate-in fade-in zoom-in-95"
+            : "p-[16px] relative flex flex-col"
+        }
       >
         {/* Chart Top Metrics Header */}
         <div className="flex flex-wrap items-baseline justify-between gap-[var(--space-4)] mb-[var(--space-3)]">
@@ -718,7 +787,7 @@ export function InteractiveStockChart({
               return (
                 <button
                   key={r}
-                  onClick={() => onRangeChange(r)}
+                  onClick={() => handleRangeClick(r)}
                   className={`px-2 py-0.5 rounded-md font-[var(--weight-medium)] transition-colors ${
                     isActive
                       ? "bg-[var(--bg-card-hover)] text-[var(--text-primary)] border border-[var(--border)]"
@@ -983,14 +1052,13 @@ export function InteractiveStockChart({
           </div>
         </div>
 
-        {/* Interactive Chart Canvas & SVG Container with smooth range switch fade animation */}
+        {/* Interactive Chart Canvas & SVG Container */}
         <div
-          key={currentRange}
           ref={containerRef}
           onMouseDown={handleMouseDown}
           onMouseUp={handleMouseUp}
           onDoubleClick={() => !isComparing && setViewWindow(null)}
-          className={`animate-chart-fade-in relative w-full select-none mt-2 ${
+          className={`relative w-full select-none mt-2 ${
             isComparing
               ? "cursor-crosshair"
               : viewWindow
@@ -1012,7 +1080,7 @@ export function InteractiveStockChart({
                 <stop
                   offset="0%"
                   stopColor={isComparing ? BASE_COLOR : isPositive ? "var(--positive)" : "var(--negative)"}
-                  stopOpacity={0.25}
+                  stopOpacity={0.2}
                 />
                 <stop
                   offset="100%"
@@ -1214,7 +1282,17 @@ export function InteractiveStockChart({
             ) : chartType === "area" ? (
               /* SINGLE ASSET AREA CHART */
               <g>
-                {areaPathD && <path d={areaPathD} fill="url(#stockAreaGradient)" />}
+                {areaPathD && (
+                  <path
+                    d={areaPathD}
+                    fill="url(#stockAreaGradient)"
+                    style={{
+                      transition: isTimeframeTransition
+                        ? "d 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease"
+                        : "none",
+                    }}
+                  />
+                )}
                 {linePathD && (
                   <path
                     d={linePathD}
@@ -1223,6 +1301,11 @@ export function InteractiveStockChart({
                     strokeWidth={1.8}
                     strokeLinecap="round"
                     strokeLinejoin="round"
+                    style={{
+                      transition: isTimeframeTransition
+                        ? "d 0.4s cubic-bezier(0.16, 1, 0.3, 1), stroke 0.3s ease"
+                        : "none",
+                    }}
                   />
                 )}
               </g>
@@ -1377,10 +1460,13 @@ export function InteractiveStockChart({
 
               return (
                 <div
-                  className="absolute pointer-events-none z-30 rounded-[var(--radius-card)] bg-[#121316]/80 border border-white/10 px-3 py-2.5 shadow-2xl backdrop-blur-md text-[var(--text-xs)] w-[205px]"
+                  className="absolute pointer-events-none z-30 rounded-[var(--radius-card)] border border-white/10 px-3 py-2.5 shadow-2xl text-[var(--text-xs)] w-[205px]"
                   style={{
                     left: tooltipX,
                     top: tooltipY,
+                    backgroundColor: "rgba(18, 19, 22, 0.62)",
+                    backdropFilter: "blur(12px)",
+                    WebkitBackdropFilter: "blur(12px)",
                   }}
                 >
                   <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)] pb-1.5 mb-1.5 border-b border-white/10">
