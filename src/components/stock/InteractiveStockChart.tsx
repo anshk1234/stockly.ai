@@ -505,118 +505,62 @@ export function InteractiveStockChart({
     return result;
   }, [visibleCandles, minPrice, priceRange, chartHeight, padding.top]);
 
-  // Liquid curve morphing state - strictly for timeframe switches (1D, 5D, 1M, etc.)
-  const [animY, setAnimY] = useState<number[] | null>(null);
-  const currentYRef = useRef<number[] | null>(null);
-  const rafIdRef = useRef<number | null>(null);
-  const prevCandlesRef = useRef<CandlePoint[]>(candles);
-  const isTimeframeSwitchRef = useRef<boolean>(false);
+  // Timeframe animation tracking
+  const [isTimeframeTransition, setIsTimeframeTransition] = useState(false);
+  const transitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Timeframe range button click handler
   const handleRangeClick = (r: TimeRange) => {
     if (r === currentRange) return;
-    if (targetYPoints && targetYPoints.length > 0) {
-      currentYRef.current = animY || targetYPoints;
-    }
-    isTimeframeSwitchRef.current = true;
+    setIsTimeframeTransition(true);
+    if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
+    transitionTimeoutRef.current = setTimeout(() => {
+      setIsTimeframeTransition(false);
+    }, 450);
     onRangeChange(r);
   };
 
+  // If user begins zooming or panning, immediately disable any timeframe transition
   useEffect(() => {
-    if (!targetYPoints || targetYPoints.length === 0) return;
-
-    // Initial mount
-    if (!currentYRef.current) {
-      currentYRef.current = targetYPoints;
-      prevCandlesRef.current = candles;
-      setAnimY(null);
-      return;
+    if (viewWindow !== null || isPanning) {
+      setIsTimeframeTransition(false);
+      if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
     }
+  }, [viewWindow, isPanning]);
 
-    const candlesChanged = prevCandlesRef.current !== candles;
-    prevCandlesRef.current = candles;
-
-    const isRangeSwitch = isTimeframeSwitchRef.current || (candlesChanged && viewWindow === null && !isPanning);
-    isTimeframeSwitchRef.current = false;
-
-    // If mouse wheel zoom in/out or drag-panning, update INSTANTLY with 0ms lag
-    if (!isRangeSwitch || viewWindow !== null || isPanning) {
-      if (rafIdRef.current) {
-        cancelAnimationFrame(rafIdRef.current);
-        rafIdRef.current = null;
-      }
-      currentYRef.current = targetYPoints;
-      setAnimY(null);
-      return;
-    }
-
-    // Timeframe switch (1D -> 5D, etc.) -> Trigger smooth liquid curve morph
-    if (rafIdRef.current) {
-      cancelAnimationFrame(rafIdRef.current);
-    }
-
-    const startY = [...currentYRef.current];
-    const endY = targetYPoints;
-    const startTime = performance.now();
-    const duration = 400; // 400ms smooth liquid curve morph
-
-    const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
-
-    const step = (now: number) => {
-      const elapsed = now - startTime;
-      const progress = Math.min(1, elapsed / duration);
-      const eased = easeOutCubic(progress);
-
-      const next = startY.map((s, idx) => s + (endY[idx] - s) * eased);
-      currentYRef.current = next;
-      setAnimY(next);
-
-      if (progress < 1) {
-        rafIdRef.current = requestAnimationFrame(step);
-      } else {
-        rafIdRef.current = null;
-        setAnimY(null);
-      }
-    };
-
-    rafIdRef.current = requestAnimationFrame(step);
-
-    return () => {
-      if (rafIdRef.current) {
-        cancelAnimationFrame(rafIdRef.current);
-      }
-    };
-  }, [candles, targetYPoints, viewWindow, isPanning]);
-
+  // Construct smooth SVG paths:
+  // - When full view (timeframe view): uses normalized 100 control points so SVG 'd' transitions natively across timeframes!
+  // - When zoomed in (scroll wheel / pan): uses exact points for 100% precision with 0ms lag!
   const linePathD = useMemo(() => {
-    // If currently morphing between timeframes, use the interpolated animY points
-    if (animY && animY.length >= 2) {
-      const stepX = chartWidth / (animY.length - 1);
-      return animY.reduce((acc, y, idx) => {
-        const x = padding.left + idx * stepX;
-        if (idx === 0) return `M ${x.toFixed(1)},${y.toFixed(1)}`;
-        const prevX = padding.left + (idx - 1) * stepX;
-        const prevY = animY[idx - 1];
-        const cp1x = prevX + (x - prevX) / 2;
-        const cp1y = prevY;
-        const cp2x = prevX + (x - prevX) / 2;
-        const cp2y = y;
-        return `${acc} C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${x.toFixed(1)},${y.toFixed(1)}`;
+    if (viewWindow !== null) {
+      // Zoomed in: exact points directly
+      if (points.length < 2) return "";
+      return points.reduce((acc, pt, idx, arr) => {
+        if (idx === 0) return `M ${pt.x.toFixed(1)},${pt.y.toFixed(1)}`;
+        const prev = arr[idx - 1];
+        const cp1x = prev.x + (pt.x - prev.x) / 2;
+        const cp1y = prev.y;
+        const cp2x = prev.x + (pt.x - prev.x) / 2;
+        const cp2y = pt.y;
+        return `${acc} C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${pt.x.toFixed(1)},${pt.y.toFixed(1)}`;
       }, "");
     }
 
-    // Normal mode (and during wheel zoom in/out or panning): render exact points instantaneously
-    if (points.length < 2) return "";
-    return points.reduce((acc, pt, idx, arr) => {
-      if (idx === 0) return `M ${pt.x.toFixed(1)},${pt.y.toFixed(1)}`;
-      const prev = arr[idx - 1];
-      const cp1x = prev.x + (pt.x - prev.x) / 2;
-      const cp1y = prev.y;
-      const cp2x = prev.x + (pt.x - prev.x) / 2;
-      const cp2y = pt.y;
-      return `${acc} C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${pt.x.toFixed(1)},${pt.y.toFixed(1)}`;
+    // Full range: 100 uniformly spaced control points for seamless native curve morphing
+    if (!targetYPoints || targetYPoints.length < 2) return "";
+    const stepX = chartWidth / (targetYPoints.length - 1);
+    return targetYPoints.reduce((acc, y, idx) => {
+      const x = padding.left + idx * stepX;
+      if (idx === 0) return `M ${x.toFixed(1)},${y.toFixed(1)}`;
+      const prevX = padding.left + (idx - 1) * stepX;
+      const prevY = targetYPoints[idx - 1];
+      const cp1x = prevX + (x - prevX) / 2;
+      const cp1y = prevY;
+      const cp2x = prevX + (x - prevX) / 2;
+      const cp2y = y;
+      return `${acc} C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${x.toFixed(1)},${y.toFixed(1)}`;
     }, "");
-  }, [animY, points, chartWidth, padding.left]);
+  }, [viewWindow, points, targetYPoints, chartWidth, padding.left]);
 
   const areaPathD = useMemo(() => {
     if (!linePathD) return "";
@@ -1338,7 +1282,17 @@ export function InteractiveStockChart({
             ) : chartType === "area" ? (
               /* SINGLE ASSET AREA CHART */
               <g>
-                {areaPathD && <path d={areaPathD} fill="url(#stockAreaGradient)" />}
+                {areaPathD && (
+                  <path
+                    d={areaPathD}
+                    fill="url(#stockAreaGradient)"
+                    style={{
+                      transition: isTimeframeTransition
+                        ? "d 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease"
+                        : "none",
+                    }}
+                  />
+                )}
                 {linePathD && (
                   <path
                     d={linePathD}
@@ -1347,6 +1301,11 @@ export function InteractiveStockChart({
                     strokeWidth={1.8}
                     strokeLinecap="round"
                     strokeLinejoin="round"
+                    style={{
+                      transition: isTimeframeTransition
+                        ? "d 0.4s cubic-bezier(0.16, 1, 0.3, 1), stroke 0.3s ease"
+                        : "none",
+                    }}
                   />
                 )}
               </g>
@@ -1501,10 +1460,13 @@ export function InteractiveStockChart({
 
               return (
                 <div
-                  className="absolute pointer-events-none z-30 rounded-[var(--radius-card)] bg-[#121316]/80 border border-white/10 px-3 py-2.5 shadow-2xl backdrop-blur-md text-[var(--text-xs)] w-[205px]"
+                  className="absolute pointer-events-none z-30 rounded-[var(--radius-card)] border border-white/10 px-3 py-2.5 shadow-2xl text-[var(--text-xs)] w-[205px]"
                   style={{
                     left: tooltipX,
                     top: tooltipY,
+                    backgroundColor: "rgba(18, 19, 22, 0.62)",
+                    backdropFilter: "blur(12px)",
+                    WebkitBackdropFilter: "blur(12px)",
                   }}
                 >
                   <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)] pb-1.5 mb-1.5 border-b border-white/10">
