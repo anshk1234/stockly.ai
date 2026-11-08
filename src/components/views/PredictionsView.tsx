@@ -1,18 +1,21 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Search, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { AssetQuote } from "@/lib/types";
 import { formatPrice, formatPercent } from "@/lib/utils";
 import { WatchlistWidget } from "@/components/WatchlistWidget";
+import { MarketMoversWidget } from "@/components/MarketMoversWidget";
 import { TwoColumnLayout, Card, SectionTitle } from "@/components/ui/layout";
 import { TickerLogo } from "@/components/ui/TickerLogo";
+import { PredictionMarketItem, FALLBACK_PREDICTIONS } from "@/lib/polymarket";
 
 interface PredictionsViewProps {
   watchlist: AssetQuote[];
   isLoadingWatchlist: boolean;
   onOpenSearch: () => void;
+  region?: "IN" | "US";
 }
 
 const CATEGORY_PILLS = [
@@ -27,98 +30,21 @@ const CATEGORY_PILLS = [
   "World",
 ];
 
-const DETAILED_PREDICTIONS = [
-  {
-    id: "pred-card-1",
-    title: "Largest Company end of December 2026?",
-    volume: "$9.9M vol.",
-    platform: "+5 on Polymarket",
-    category: "Finance",
-    options: [
-      { label: "Apple", percentage: 63.0, change: 3.3 },
-      { label: "NVIDIA", percentage: 37.0, change: -2.5 },
-      { label: "Microsoft", percentage: 1.0, change: -1.1 },
-    ],
-    narrative:
-      "NVIDIA leads at 59.5% to be the world's largest company by end of 2026, but Alphabet's recent 43% stock surge has meaningfully pressured that lead — with Alphabet climbing to 24% — making this a two-horse race worth watching, especially as NVIDIA's probability has already dropped from ~79% in early May, suggesting momentum is shifting toward Alphabet as a value play at current odds.",
-    sources: "4 sources",
-    date: "May 13, 2026",
-  },
-  {
-    id: "pred-card-2",
-    title: "Anthropic IPO Closing Market Cap",
-    volume: "$3.7M vol.",
-    platform: "+7 on Polymarket",
-    category: "Tech",
-    options: [
-      { label: "$1.5–$1.75T", percentage: 29.0, change: 3.5 },
-      { label: "$1.25–$1.5T", percentage: 19.0, change: 2.9 },
-      { label: "$1.75–$2.0T", percentage: 18.0, change: -8.0 },
-    ],
-    narrative:
-      "Anthropic's latest funding valuations and enterprise Claude revenue acceleration continue to drive bullish expectations for public market debut capitalization above the $1.5T benchmark threshold.",
-    sources: "2 sources",
-    date: "Oct 28, 2026",
-  },
-  {
-    id: "pred-card-3",
-    title: "What will WTI Crude Oil (WTI) hit in November 2026?",
-    volume: "$1.4M vol.",
-    platform: "+21 on Polymarket",
-    category: "Economy",
-    options: [
-      { label: "↑ $95", percentage: 71.0, change: 12.5 },
-      { label: "↓ $85", percentage: 68.0, change: -10.0 },
-      { label: "↑ $100", percentage: 45.0, change: 9.0 },
-    ],
-    narrative:
-      "Energy derivative markets price heightened volatility amidst Middle East supply dynamics and strategic petroleum reserve inventory restocking directives.",
-    sources: "6 sources",
-    date: "Nov 3, 2026",
-  },
-  {
-    id: "pred-card-4",
-    title: "Anthropic IPO by ___?",
-    volume: "$2.1M vol.",
-    platform: "+11 on Polymarket",
-    category: "Tech",
-    options: [
-      { label: "December 31, 2026", percentage: 71.0, change: 20.3 },
-      { label: "December 15, 2026", percentage: 65.0, change: 22.5 },
-      { label: "November 30, 2026", percentage: 54.0, change: 29.0 },
-    ],
-    narrative:
-      "S-1 filing timelines and investment banking syndicate structuring indicate a late Q4 liquidity window prior to fiscal year-end regulatory pauses.",
-    sources: "3 sources",
-    date: "Nov 5, 2026",
-  },
-];
-
-const MARKET_MOVERS = {
-  gainers: [
-    { name: "M M Forgings Limited", symbol: "MMFL · BSE", price: "₹630.45", change: "+19.99%" },
-    { name: "IKIO Technologies Limited", symbol: "IKIO · BSE", price: "₹195.30", change: "+12.66%" },
-    { name: "Tata Teleservices (Maharashtra)", symbol: "TTML · BSE", price: "₹39.73", change: "+12.17%" },
-  ],
-  losers: [
-    { name: "IndusInd Bank", symbol: "INDUSINDBK · NSE", price: "₹1,140.00", change: "-4.25%" },
-    { name: "Titan Company", symbol: "TITAN · NSE", price: "₹3,180.50", change: "-3.10%" },
-  ],
-  active: [
-    { name: "HDFC Bank Ltd", symbol: "HDFCBANK · NSE", price: "₹1,745.20", change: "+1.85%" },
-    { name: "Reliance Industries", symbol: "RELIANCE · NSE", price: "₹1,328.00", change: "+1.20%" },
-  ],
-};
 
 export function PredictionsView({
   watchlist,
   isLoadingWatchlist,
   onOpenSearch,
+  region = "IN",
 }: PredictionsViewProps) {
   const [selectedPill, setSelectedPill] = useState("Finance");
   const [searchQuery, setSearchQuery] = useState("");
-  const [moverTab, setMoverTab] = useState<"gainers" | "losers" | "active">("gainers");
   const [popularCryptos, setPopularCryptos] = useState<AssetQuote[]>([]);
+  const [predictionCards, setPredictionCards] = useState<PredictionMarketItem[]>(FALLBACK_PREDICTIONS);
+  const [isLoadingPredictions, setIsLoadingPredictions] = useState(false);
+
+  // In-memory client cache for instant (0ms) category switching
+  const cacheRef = useRef<Record<string, { markets: PredictionMarketItem[]; timestamp: number }>>({});
 
   useEffect(() => {
     fetch("/api/crypto")
@@ -129,10 +55,49 @@ export function PredictionsView({
       .catch(console.error);
   }, []);
 
-  const filteredCards = DETAILED_PREDICTIONS.filter((card) => {
+  // Fetch live prediction markets whenever selected category changes
+  useEffect(() => {
+    let isCurrent = true;
+
+    async function loadCategoryMarkets() {
+      const cached = cacheRef.current[selectedPill];
+      const now = Date.now();
+      if (cached && now - cached.timestamp < 120000) {
+        setPredictionCards(cached.markets);
+        return;
+      }
+
+      setIsLoadingPredictions(true);
+      try {
+        const res = await fetch(`/api/predictions?category=${encodeURIComponent(selectedPill)}`);
+        const data = await res.json();
+        if (isCurrent && data.markets && Array.isArray(data.markets) && data.markets.length > 0) {
+          cacheRef.current[selectedPill] = {
+            markets: data.markets,
+            timestamp: Date.now(),
+          };
+          setPredictionCards(data.markets);
+        }
+      } catch (err) {
+        console.warn(`Failed to fetch ${selectedPill} prediction markets:`, err);
+      } finally {
+        if (isCurrent) setIsLoadingPredictions(false);
+      }
+    }
+
+    loadCategoryMarkets();
+    return () => {
+      isCurrent = false;
+    };
+  }, [selectedPill]);
+
+  const filteredCards = predictionCards.filter((card) => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return true;
     const matchesSearch =
-      card.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      card.narrative.toLowerCase().includes(searchQuery.toLowerCase());
+      card.title.toLowerCase().includes(query) ||
+      (card.narrative && card.narrative.toLowerCase().includes(query)) ||
+      card.options.some((opt) => opt.label.toLowerCase().includes(query));
     return matchesSearch;
   });
 
@@ -195,17 +160,22 @@ export function PredictionsView({
                     const isPositive = opt.change >= 0;
                     return (
                       <div key={i} className="flex items-center justify-between text-[var(--text-xs)]">
-                        <span className="text-[var(--text-muted)] font-[var(--weight-regular)]">
+                        <span className="text-[var(--text-muted)] font-[var(--weight-regular)] truncate max-w-[180px]">
                           {opt.label}
                         </span>
-                        <div className="flex items-center gap-[var(--space-2)]">
+                        <div className="flex items-center gap-[var(--space-2)] shrink-0">
                           <span className="font-[var(--weight-medium)] text-[var(--text-primary)] tabular-nums">
                             {opt.percentage.toFixed(1)}%
                           </span>
                           <div
-                            className={`flex items-center gap-0.5 text-[var(--text-xs)] font-[var(--weight-medium)] tabular-nums ${isPositive ? "text-positive" : "text-negative"}`} style={{ color: isPositive ? "#3ecf8e" : "#f2555a" }}
+                            className={`flex items-center gap-0.5 text-[var(--text-xs)] font-[var(--weight-medium)] tabular-nums`}
+                            style={{ color: isPositive ? "#3ecf8e" : "#f2555a" }}
                           >
-                            {isPositive ? <ArrowUpRight className="w-3 h-3 stroke-[2]" /> : <ArrowDownRight className="w-3 h-3 stroke-[2]" />}
+                            {isPositive ? (
+                              <ArrowUpRight className="w-3 h-3 stroke-[2]" />
+                            ) : (
+                              <ArrowDownRight className="w-3 h-3 stroke-[2]" />
+                            )}
                             <span>{Math.abs(opt.change).toFixed(1)}%</span>
                           </div>
                         </div>
@@ -221,9 +191,14 @@ export function PredictionsView({
 
               <div className="flex items-center justify-between text-[var(--text-xs)] text-[var(--text-muted)] pt-2 border-t border-[var(--border)]">
                 <span>{card.sources} • {card.date}</span>
-                <span className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer font-[var(--weight-medium)]">
+                <a
+                  href="https://polymarket.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer font-[var(--weight-medium)]"
+                >
                   {card.platform}
-                </span>
+                </a>
               </div>
             </Card>
           ))}
@@ -234,94 +209,56 @@ export function PredictionsView({
 
   const sidebarContent = (
     <div className="flex flex-col gap-[var(--space-6)]">
+      {/* Watchlist Quick Widget */}
       <WatchlistWidget
         items={watchlist}
         isLoading={isLoadingWatchlist}
         onManageWatchlist={onOpenSearch}
       />
 
-      {/* Gainers / Losers / Active Movers inside ONE card */}
-      <div className="w-full">
-        <SectionTitle>Market Movers</SectionTitle>
+      <MarketMoversWidget region={region} />
 
-        <Card>
-          <div className="flex items-center gap-[var(--space-3)] px-[16px] pt-[12px] pb-[8px] border-b border-[var(--border)] text-[var(--text-xs)]">
-            {(["gainers", "losers", "active"] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setMoverTab(tab)}
-                className={`capitalize font-[var(--weight-medium)] transition-colors ${
-                  moverTab === tab
-                    ? "text-[var(--text-primary)] border-b-2 border-[var(--text-primary)] pb-1 -mb-[9px]"
-                    : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex flex-col">
-            {MARKET_MOVERS[moverTab].map((item, idx) => {
-              const isPos = item.change.startsWith("+");
+      {/* Popular Cryptos Sidebar Strip */}
+      {popularCryptos.length > 0 && (
+        <div>
+          <SectionTitle>Popular Cryptocurrencies</SectionTitle>
+          <div className="flex flex-col gap-2">
+            {popularCryptos.slice(0, 4).map((coin) => {
+              const isPositive = coin.changePercent >= 0;
               return (
-                <div
-                  key={idx}
-                  className="flex items-center justify-between px-[16px] py-[12px] border-b border-[var(--border)] last:border-b-0 text-[var(--text-xs)]"
+                <Link
+                  key={coin.symbol}
+                  href={`/stocks/${encodeURIComponent(coin.symbol)}`}
+                  className="flex items-center justify-between p-2.5 rounded-[var(--radius-card)] bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] border border-[var(--border)] transition-colors"
                 >
-                  <div>
-                    <div className="font-[var(--weight-medium)] text-[var(--text-primary)] truncate max-w-[140px]">
-                      {item.name}
+                  <div className="flex items-center gap-2.5">
+                    <TickerLogo symbol={coin.symbol} name={coin.name} size={20} />
+                    <div>
+                      <div className="text-[12px] font-[var(--weight-medium)] text-[var(--text-primary)]">
+                        {coin.name}
+                      </div>
+                      <div className="text-[10px] text-[var(--text-muted)] uppercase">
+                        {coin.symbol.replace("-USD", "")}
+                      </div>
                     </div>
-                    <div className="text-[var(--text-xs)] text-[var(--text-muted)]">{item.symbol}</div>
                   </div>
                   <div className="text-right">
-                    <div className="font-[var(--weight-medium)] text-[var(--text-primary)] tabular-nums">{item.price}</div>
-                    <div className={`text-[var(--text-xs)] font-[var(--weight-medium)] tabular-nums ${isPos ? "text-positive" : "text-negative"}`} style={{ color: isPos ? "#3ecf8e" : "#f2555a" }}>
-                      {item.change}
+                    <div className="text-[12px] font-[var(--weight-medium)] text-[var(--text-primary)] tabular-nums">
+                      {formatPrice(coin.price, "USD")}
+                    </div>
+                    <div
+                      className={`text-[10px] font-[var(--weight-medium)] tabular-nums`}
+                      style={{ color: isPositive ? "#3ecf8e" : "#f2555a" }}
+                    >
+                      {formatPercent(coin.changePercent)}
                     </div>
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>
-        </Card>
-      </div>
-
-      {/* Popular Cryptos inside ONE card */}
-      <div className="w-full">
-        <SectionTitle>Popular Cryptocurrencies</SectionTitle>
-
-        <Card>
-          {popularCryptos.map((coin) => {
-            const isPos = coin.changePercent >= 0;
-            return (
-              <Link
-                key={coin.symbol}
-                href={`/stocks/${encodeURIComponent(coin.symbol)}`}
-                className="flex items-center justify-between px-[16px] py-[12px] border-b border-[var(--border)] last:border-b-0 hover:bg-[var(--bg-card-hover)] transition-colors"
-              >
-                <div className="flex items-center gap-[var(--space-2)]">
-                  <TickerLogo symbol={coin.symbol} name={coin.name} size={24} />
-                  <div>
-                    <div className="font-[var(--weight-medium)] text-[var(--text-primary)] text-[var(--text-xs)]">{coin.name}</div>
-                    <div className="text-[10px] text-[var(--text-muted)]">{coin.symbol} · CRYPTO</div>
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <div className="font-[var(--weight-medium)] text-[var(--text-primary)] text-[var(--text-xs)] tabular-nums">
-                    {formatPrice(coin.price, "USD")}
-                  </div>
-                  <div className={`text-[10px] font-[var(--weight-medium)] tabular-nums ${isPos ? "text-positive" : "text-negative"}`} style={{ color: isPos ? "#3ecf8e" : "#f2555a" }}>
-                    {formatPercent(coin.changePercent)}
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
-        </Card>
-      </div>
+        </div>
+      )}
     </div>
   );
 

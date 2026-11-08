@@ -220,7 +220,7 @@ export function SearchDropdown({ className, onSelectSymbol }: SearchDropdownProp
                   const isSelected = selectedIndex === idx;
                   return (
                     <div
-                      key={item.symbol + idx}
+                      key={item?.symbol ? `${item.symbol}-${idx}` : `search-result-${idx}`}
                       onClick={() => handleSelect(item.symbol)}
                       className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-colors ${
                         isSelected
@@ -264,9 +264,9 @@ export function SearchDropdown({ className, onSelectSymbol }: SearchDropdownProp
                   Recent
                 </div>
                 <div className="flex flex-wrap gap-1.5">
-                  {recent.map((rec) => (
+                  {recent.map((rec, idx) => (
                     <button
-                      key={rec.symbol}
+                      key={rec?.symbol ? `${rec.symbol}-${idx}` : `recent-${idx}`}
                       onClick={() => handleSelect(rec.symbol)}
                       className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] border border-[var(--border)] text-[11.5px] text-[var(--text-primary)] transition-colors cursor-pointer group"
                     >
@@ -295,7 +295,7 @@ export function SearchDropdown({ className, onSelectSymbol }: SearchDropdownProp
 
                     return (
                       <div
-                        key={asset.symbol}
+                        key={asset?.symbol ? `${asset.symbol}-${idx}` : `trending-${idx}`}
                         onClick={() => handleSelect(asset.symbol)}
                         className={`flex items-center justify-between px-2.5 py-2 rounded-lg cursor-pointer transition-colors ${
                           isSelected
