@@ -7,6 +7,8 @@ import { TopAssetsStrip } from "@/components/TopAssetsStrip";
 import { MarketSummary, SourceItem } from "@/components/MarketSummary";
 import { WatchlistWidget } from "@/components/WatchlistWidget";
 import { PredictionWidget } from "@/components/PredictionWidget";
+import { MarketMoversWidget } from "@/components/MarketMoversWidget";
+import { MarketHeatmap } from "@/components/MarketHeatmap";
 import { SearchModal } from "@/components/SearchModal";
 import { CryptoView } from "@/components/views/CryptoView";
 import { PredictionsView } from "@/components/views/PredictionsView";
@@ -270,6 +272,8 @@ export default function Home() {
                     sourcesCount={sourcesCount}
                     sources={sources}
                   />
+
+                  <MarketHeatmap region={region} />
                 </div>
               }
               sidebar={
@@ -281,6 +285,8 @@ export default function Home() {
                   />
 
                   <PredictionWidget />
+
+                  <MarketMoversWidget region={region} />
                 </div>
               }
             />
@@ -298,6 +304,7 @@ export default function Home() {
           {/* Tab 3: Predictions View */}
           {activeTab === "Predictions" && (
             <PredictionsView
+              region={region}
               watchlist={watchlist}
               isLoadingWatchlist={isLoadingWatchlist}
               onOpenSearch={() => setIsSearchOpen(true)}
