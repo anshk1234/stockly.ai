@@ -508,21 +508,44 @@ export function InteractiveStockChart({
   // Timeframe animation tracking
   const [isTimeframeTransition, setIsTimeframeTransition] = useState(false);
   const transitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isPendingRangeChangeRef = useRef(false);
+  const prevCandlesRef = useRef<CandlePoint[]>(candles);
 
   // Timeframe range button click handler
   const handleRangeClick = (r: TimeRange) => {
     if (r === currentRange) return;
     setIsTimeframeTransition(true);
+    isPendingRangeChangeRef.current = true;
     if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
     transitionTimeoutRef.current = setTimeout(() => {
       setIsTimeframeTransition(false);
-    }, 450);
+      isPendingRangeChangeRef.current = false;
+    }, 10000);
     onRangeChange(r);
   };
+
+  // Trigger smooth transition strictly when the new timeframe candles arrive from network
+  useEffect(() => {
+    if (candles !== prevCandlesRef.current) {
+      prevCandlesRef.current = candles;
+
+      // Only animate if this candle update was caused by a timeframe switch (not wheel zoom / pan)
+      if (isPendingRangeChangeRef.current && viewWindow === null && !isPanning) {
+        isPendingRangeChangeRef.current = false;
+        setIsTimeframeTransition(true);
+
+        if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
+        transitionTimeoutRef.current = setTimeout(() => {
+          setIsTimeframeTransition(false);
+        }, 500);
+      }
+    }
+  }, [candles, viewWindow, isPanning]);
 
   // If user begins zooming or panning, immediately disable any timeframe transition
   useEffect(() => {
     if (viewWindow !== null || isPanning) {
+      isPendingRangeChangeRef.current = false;
       setIsTimeframeTransition(false);
       if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
     }
@@ -768,14 +791,6 @@ export function InteractiveStockChart({
               {dateRangeLabel}
             </div>
           </div>
-
-          {/* Loading Indicator */}
-          {isLoading && (
-            <div className="flex items-center gap-1.5 text-[var(--text-xs)] text-[var(--text-muted)] bg-[var(--bg-card-hover)] px-2.5 py-1 rounded-full border border-[var(--border)]">
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--positive)]" />
-              <span>Updating...</span>
-            </div>
-          )}
         </div>
 
         {/* Chart Toolbar: Time Ranges + Chart Mode Options */}
