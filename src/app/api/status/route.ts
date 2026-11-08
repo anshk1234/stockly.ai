@@ -8,7 +8,7 @@ export async function GET() {
     const status = await getMarketStatus();
     return NextResponse.json({ status }, {
       headers: {
-        "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60",
+        "Cache-Control": "public, max-age=30, s-maxage=60, stale-while-revalidate=120",
       },
     });
   } catch (error) {

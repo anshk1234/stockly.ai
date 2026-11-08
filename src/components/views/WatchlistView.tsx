@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { SlidersHorizontal } from "lucide-react";
 import { AssetQuote, TimeRange, CandlePoint } from "@/lib/types";
 import { formatPrice, formatPercent } from "@/lib/utils";
@@ -33,13 +33,33 @@ export function WatchlistView({
 
   const activeSymbol = selectedStock?.symbol || "MSFT";
 
+  // In-memory client cache for watchlist charts (60-second freshness window)
+  const chartCacheRef = useRef<Record<string, { candles: CandlePoint[]; previousClose?: number; timestamp: number }>>({});
+
   useEffect(() => {
     async function loadChart() {
+      const cacheKey = `${activeSymbol}-${currentRange}`;
+      const cached = chartCacheRef.current[cacheKey];
+      const now = Date.now();
+      if (cached && now - cached.timestamp < 60000) {
+        setCandles(cached.candles);
+        if (cached.previousClose) setPreviousClose(cached.previousClose);
+        setIsLoadingChart(false);
+        return;
+      }
+
       setIsLoadingChart(true);
       try {
         const res = await fetch(`/api/stock/${encodeURIComponent(activeSymbol)}/chart?range=${currentRange}`);
         const data = await res.json();
-        if (data.candles) setCandles(data.candles);
+        if (data.candles) {
+          chartCacheRef.current[cacheKey] = {
+            candles: data.candles,
+            previousClose: data.previousClose,
+            timestamp: Date.now(),
+          };
+          setCandles(data.candles);
+        }
         if (data.previousClose) setPreviousClose(data.previousClose);
       } catch (err) {
         console.error("Failed to load watchlist chart:", err);

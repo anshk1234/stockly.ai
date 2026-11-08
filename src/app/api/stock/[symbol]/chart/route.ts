@@ -20,7 +20,7 @@ export async function GET(
     const data = await getStockChart(decodeURIComponent(symbol).toUpperCase(), range);
     return NextResponse.json(data, {
       headers: {
-        "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60",
+        "Cache-Control": range === "1D" ? "public, max-age=15, s-maxage=30, stale-while-revalidate=60" : "public, max-age=60, s-maxage=300, stale-while-revalidate=600",
       },
     });
   } catch (error) {

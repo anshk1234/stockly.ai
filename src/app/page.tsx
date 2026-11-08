@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Header } from "@/components/Header";
 import { SubHeader } from "@/components/SubHeader";
 import { TopAssetsStrip } from "@/components/TopAssetsStrip";
@@ -39,13 +39,29 @@ export default function Home() {
     "NVDA",
   ]);
 
-  // Fetch Top Assets
+  // In-memory client caches for region switching (60-second freshness window)
+  const assetsCacheRef = useRef<Record<string, { assets: AssetQuote[]; timestamp: number }>>({});
+  const newsCacheRef = useRef<Record<string, { news: NewsItem[]; sourcesCount: number; sources: SourceItem[]; lastUpdated: Date; timestamp: number }>>({});
+
+  // Fetch Top Assets (serves instantly from memory if region was recently loaded)
   const fetchAssets = useCallback(async (selectedRegion: "IN" | "US") => {
+    const cached = assetsCacheRef.current[selectedRegion];
+    const now = Date.now();
+    if (cached && now - cached.timestamp < 60000) {
+      setAssets(cached.assets);
+      setIsLoadingAssets(false);
+      return;
+    }
+
     setIsLoadingAssets(true);
     try {
       const res = await fetch(`/api/assets?region=${selectedRegion}`);
       const data = await res.json();
       if (data.assets) {
+        assetsCacheRef.current[selectedRegion] = {
+          assets: data.assets,
+          timestamp: Date.now(),
+        };
         setAssets(data.assets);
       }
     } catch (err) {
@@ -57,15 +73,34 @@ export default function Home() {
 
   // Fetch Market News Summary (Perplexity-style Live Wire & Synthesis)
   const fetchNews = useCallback(async (selectedRegion: "IN" | "US") => {
+    const cached = newsCacheRef.current[selectedRegion];
+    const now = Date.now();
+    if (cached && now - cached.timestamp < 60000) {
+      setNews(cached.news);
+      setSourcesCount(cached.sourcesCount);
+      setSources(cached.sources);
+      setLastUpdated(cached.lastUpdated);
+      setIsLoadingNews(false);
+      return;
+    }
+
     setIsLoadingNews(true);
     try {
       const res = await fetch(`/api/news?region=${selectedRegion}`);
       const data = await res.json();
       if (data.news) {
+        const itemDate = data.lastUpdated ? new Date(data.lastUpdated) : new Date();
+        newsCacheRef.current[selectedRegion] = {
+          news: data.news,
+          sourcesCount: data.sourcesCount || data.news.length,
+          sources: data.sources || [],
+          lastUpdated: itemDate,
+          timestamp: Date.now(),
+        };
         setNews(data.news);
         setSourcesCount(data.sourcesCount || data.news.length);
         setSources(data.sources || []);
-        setLastUpdated(data.lastUpdated ? new Date(data.lastUpdated) : new Date());
+        setLastUpdated(itemDate);
       }
     } catch (err) {
       console.error("Failed to load news:", err);
@@ -114,16 +149,80 @@ export default function Home() {
     fetchWatchlist(watchlistSymbols);
   }, [watchlistSymbols, fetchWatchlist]);
 
-  // Live polling every 30 seconds
+  // Live polling every 30 seconds - automatically paused when browser tab is inactive/hidden
   useEffect(() => {
-    const interval = setInterval(() => {
-      fetchAssets(region);
+    const poll = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+        return; // Skip poll if user is not viewing the tab, saving compute & bandwidth
+      }
+      fetch(`/api/assets?region=${region}`)
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.assets) {
+            assetsCacheRef.current[region] = { assets: d.assets, timestamp: Date.now() };
+            setAssets(d.assets);
+          }
+        })
+        .catch(() => null);
+
       fetchWatchlist(watchlistSymbols);
       fetchStatus();
-    }, 30000);
+    };
 
-    return () => clearInterval(interval);
-  }, [region, watchlistSymbols, fetchAssets, fetchWatchlist, fetchStatus]);
+    const interval = setInterval(poll, 30000);
+
+    // Refresh immediately when returning to the tab
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        poll();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [region, watchlistSymbols, fetchWatchlist, fetchStatus]);
+
+  // Synchronize tab state with URL search param and browser Back/Forward history
+  const handleTabChange = useCallback((tab: DashboardTab) => {
+    setActiveTab(tab);
+    if (typeof window !== "undefined") {
+      const currentUrl = new URL(window.location.href);
+      if (tab === "Markets") {
+        currentUrl.searchParams.delete("tab");
+      } else {
+        currentUrl.searchParams.set("tab", tab.toLowerCase());
+      }
+      window.history.pushState({ tab }, "", currentUrl.toString());
+    }
+  }, []);
+
+  useEffect(() => {
+    const syncTabFromUrl = () => {
+      if (typeof window === "undefined") return;
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab")?.toLowerCase();
+
+      const tabMap: Record<string, DashboardTab> = {
+        markets: "Markets",
+        crypto: "Crypto",
+        predictions: "Predictions",
+        watchlist: "Watchlist",
+      };
+
+      if (tabParam && tabMap[tabParam]) {
+        setActiveTab(tabMap[tabParam]);
+      } else {
+        setActiveTab("Markets");
+      }
+    };
+
+    syncTabFromUrl();
+    window.addEventListener("popstate", syncTabFromUrl);
+    return () => window.removeEventListener("popstate", syncTabFromUrl);
+  }, []);
 
   const handleSelectSymbol = (symbol: string) => {
     if (!watchlistSymbols.includes(symbol)) {
@@ -141,11 +240,11 @@ export default function Home() {
         region={region}
         onRegionChange={(newRegion) => {
           setRegion(newRegion);
-          setActiveTab("Markets");
+          handleTabChange("Markets");
         }}
         sentiment={sentiment}
         activeTab={activeTab}
-        onTabChange={(tab) => setActiveTab(tab)}
+        onTabChange={handleTabChange}
       />
 
       {/* Centered Page Content Container */}

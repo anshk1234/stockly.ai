@@ -53,21 +53,35 @@ const CRYPTO_PREDICTIONS = [
   },
 ];
 
+// In-memory client cache for instant (0ms) Back navigation from asset detail pages
+let cachedCryptoData: {
+  movements: AssetQuote[];
+  news: NewsItem[];
+  sourcesCount: number;
+  sources: SourceItem[];
+  lastUpdated: Date;
+  timestamp: number;
+} | null = null;
+
 export function CryptoView({
   watchlist,
   isLoadingWatchlist,
   onOpenSearch,
 }: CryptoViewProps) {
-  const [cryptoMovements, setCryptoMovements] = useState<AssetQuote[]>([]);
-  const [cryptoNews, setCryptoNews] = useState<NewsItem[]>([]);
-  const [sourcesCount, setSourcesCount] = useState<number>(0);
-  const [sources, setSources] = useState<SourceItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [cryptoMovements, setCryptoMovements] = useState<AssetQuote[]>(() => cachedCryptoData?.movements || []);
+  const [cryptoNews, setCryptoNews] = useState<NewsItem[]>(() => cachedCryptoData?.news || []);
+  const [sourcesCount, setSourcesCount] = useState<number>(() => cachedCryptoData?.sourcesCount || 0);
+  const [sources, setSources] = useState<SourceItem[]>(() => cachedCryptoData?.sources || []);
+  const [isLoading, setIsLoading] = useState(() => !cachedCryptoData);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(() => cachedCryptoData?.lastUpdated || null);
 
   useEffect(() => {
     async function loadCryptoData() {
-      setIsLoading(true);
+      const isFresh = cachedCryptoData && (Date.now() - cachedCryptoData.timestamp < 60000);
+      if (!isFresh) {
+        if (!cachedCryptoData) setIsLoading(true);
+      }
+
       try {
         const [cryptoRes, newsRes] = await Promise.all([
           fetch("/api/crypto"),
@@ -76,13 +90,24 @@ export function CryptoView({
         const cryptoData = await cryptoRes.json();
         const newsData = await newsRes.json();
 
+        const itemDate = newsData.lastUpdated ? new Date(newsData.lastUpdated) : new Date();
+
         if (cryptoData.movements) setCryptoMovements(cryptoData.movements);
         if (newsData.news) {
           setCryptoNews(newsData.news);
           setSourcesCount(newsData.sourcesCount || newsData.news.length);
           setSources(newsData.sources || []);
         }
-        setLastUpdated(newsData.lastUpdated ? new Date(newsData.lastUpdated) : new Date());
+        setLastUpdated(itemDate);
+
+        cachedCryptoData = {
+          movements: cryptoData.movements || [],
+          news: newsData.news || [],
+          sourcesCount: newsData.sourcesCount || newsData.news?.length || 0,
+          sources: newsData.sources || [],
+          lastUpdated: itemDate,
+          timestamp: Date.now(),
+        };
       } catch (err) {
         console.error("Failed to load crypto view data:", err);
       } finally {

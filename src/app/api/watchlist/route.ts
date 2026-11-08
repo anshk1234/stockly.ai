@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     const quotes = await getWatchlist(symbols);
     return NextResponse.json({ quotes }, {
       headers: {
-        "Cache-Control": "public, s-maxage=15, stale-while-revalidate=30",
+        "Cache-Control": "public, max-age=15, s-maxage=30, stale-while-revalidate=60",
       },
     });
   } catch (error) {

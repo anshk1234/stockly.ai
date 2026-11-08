@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, use, useCallback } from "react";
+import React, { useState, useEffect, use, useCallback, useRef } from "react";
 import Link from "next/link";
 import {
   Star,
@@ -65,8 +65,22 @@ export default function StockDetailPage({
     }
   }, [symbol]);
 
-  // Fetch Chart Data for Range
+  // In-memory client cache for timeframe charts (60-second freshness window)
+  const chartCacheRef = useRef<Record<string, { candles: CandlePoint[]; previousClose?: number; timestamp: number }>>({});
+
+  // Fetch Chart Data for Range (serves instantly from client memory if available)
   const fetchChart = useCallback(async (range: TimeRange) => {
+    const cached = chartCacheRef.current[range];
+    const now = Date.now();
+    if (cached && now - cached.timestamp < 60000) {
+      setCandles(cached.candles);
+      if (cached.previousClose) {
+        setPreviousClose(cached.previousClose);
+      }
+      setIsLoadingChart(false);
+      return;
+    }
+
     setIsLoadingChart(true);
     try {
       const res = await fetch(
@@ -74,6 +88,11 @@ export default function StockDetailPage({
       );
       const data = await res.json();
       if (data.candles) {
+        chartCacheRef.current[range] = {
+          candles: data.candles,
+          previousClose: data.previousClose,
+          timestamp: Date.now(),
+        };
         setCandles(data.candles);
         if (data.previousClose) {
           setPreviousClose(data.previousClose);
