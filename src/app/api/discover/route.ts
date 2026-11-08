@@ -61,7 +61,7 @@ async function fetchIndianDiscover(): Promise<DiscoverStory[]> {
       const pubDateMatch = it.match(/<pubDate>([\s\S]*?)<\/pubDate>/);
 
       if (titleMatch) {
-        let title = titleMatch[1]
+        const title = titleMatch[1]
           .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
           .replace(/<[^>]*>/g, "")
           .trim();

@@ -1,13 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, use, useCallback, useRef } from "react";
+import React, { useState, useEffect, use, useRef } from "react";
 import Link from "next/link";
 import {
   Star,
   BellRing,
-  Sparkles,
-  ChevronRight,
-  Loader2,
   ArrowLeft,
 } from "lucide-react";
 import { SearchModal } from "@/components/SearchModal";
@@ -16,7 +13,7 @@ import { TickerLogo } from "@/components/ui/TickerLogo";
 import { InteractiveStockChart } from "@/components/stock/InteractiveStockChart";
 import { KeyStatsGrid } from "@/components/stock/KeyStatsGrid";
 import { CompanyProfileWidget } from "@/components/stock/CompanyProfileWidget";
-import { PageContainer, TwoColumnLayout, Card, SectionTitle } from "@/components/ui/layout";
+import { PageContainer, TwoColumnLayout, Card } from "@/components/ui/layout";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { DetailedStockQuote, CandlePoint, TimeRange } from "@/lib/types";
 
@@ -57,66 +54,70 @@ export default function StockDetailPage({
   const [isLoadingChart, setIsLoadingChart] = useState(true);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
-  // Fetch Stock Details
-  const fetchStock = useCallback(async () => {
-    setIsLoadingStock(true);
-    try {
-      const res = await fetch(`/api/stock/${encodeURIComponent(symbol)}`);
-      const data = await res.json();
-      if (data.stock) {
-        setStock(data.stock);
-      }
-    } catch (err) {
-      console.error("Error fetching stock:", err);
-    } finally {
-      setIsLoadingStock(false);
-    }
-  }, [symbol]);
-
   // In-memory client cache for timeframe charts (60-second freshness window)
   const chartCacheRef = useRef<Record<string, { candles: CandlePoint[]; previousClose?: number; timestamp: number }>>({});
 
-  // Fetch Chart Data for Range (serves instantly from client memory if available)
-  const fetchChart = useCallback(async (range: TimeRange) => {
-    const cached = chartCacheRef.current[range];
-    const now = Date.now();
-    if (cached && now - cached.timestamp < 60000) {
-      setCandles(cached.candles);
-      if (cached.previousClose) {
-        setPreviousClose(cached.previousClose);
-      }
-      setIsLoadingChart(false);
-      return;
-    }
-
-    setIsLoadingChart(true);
-    try {
-      const res = await fetch(
-        `/api/stock/${encodeURIComponent(symbol)}/chart?range=${range}`
-      );
-      const data = await res.json();
-      if (data.candles) {
-        chartCacheRef.current[range] = {
-          candles: data.candles,
-          previousClose: data.previousClose,
-          timestamp: Date.now(),
-        };
-        setCandles(data.candles);
-        if (data.previousClose) {
-          setPreviousClose(data.previousClose);
-        }
-      }
-    } catch (err) {
-      console.error("Error fetching chart data:", err);
-    } finally {
-      setIsLoadingChart(false);
-    }
-  }, [symbol]);
-
   useEffect(() => {
-    fetchStock();
-    fetchChart(currentRange);
-  }, [fetchStock, fetchChart, currentRange]);
+    let isCurrent = true;
+
+    async function loadStock() {
+      setIsLoadingStock(true);
+      try {
+        const res = await fetch(`/api/stock/${encodeURIComponent(symbol)}`);
+        const data = await res.json();
+        if (isCurrent && data.stock) {
+          setStock(data.stock);
+        }
+      } catch (err) {
+        console.error("Error fetching stock:", err);
+      } finally {
+        if (isCurrent) setIsLoadingStock(false);
+      }
+    }
+
+    async function loadChart(range: TimeRange) {
+      const cached = chartCacheRef.current[range];
+      const now = Date.now();
+      if (cached && now - cached.timestamp < 60000) {
+        setCandles(cached.candles);
+        if (cached.previousClose) {
+          setPreviousClose(cached.previousClose);
+        }
+        setIsLoadingChart(false);
+        return;
+      }
+
+      setIsLoadingChart(true);
+      try {
+        const res = await fetch(
+          `/api/stock/${encodeURIComponent(symbol)}/chart?range=${range}`
+        );
+        const data = await res.json();
+        if (isCurrent && data.candles) {
+          chartCacheRef.current[range] = {
+            candles: data.candles,
+            previousClose: data.previousClose,
+            timestamp: Date.now(),
+          };
+          setCandles(data.candles);
+          if (data.previousClose) {
+            setPreviousClose(data.previousClose);
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching chart data:", err);
+      } finally {
+        if (isCurrent) setIsLoadingChart(false);
+      }
+    }
+
+    loadStock();
+    loadChart(currentRange);
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [symbol, currentRange]);
 
   const handleRangeChange = (newRange: TimeRange) => {
     setCurrentRange(newRange);
