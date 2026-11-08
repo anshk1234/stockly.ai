@@ -16,6 +16,8 @@ export interface AssetQuote {
   perf6M?: number;
 }
 
+export type AssetClass = "EQUITY" | "CRYPTOCURRENCY" | "INDEX" | "ETF";
+
 export interface DetailedStockQuote {
   symbol: string;
   name: string;
@@ -29,11 +31,18 @@ export interface DetailedStockQuote {
   previousClose: number;
   marketState: string;
 
+  assetClass?: AssetClass;
+  quoteType?: string;
+
   marketCap?: number;
   dayLow?: number;
   dayHigh?: number;
   fiftyTwoWeekLow?: number;
   fiftyTwoWeekHigh?: number;
+  fiftyDayAverage?: number;
+  twoHundredDayAverage?: number;
+
+  // Equity specific
   trailingPE?: number;
   forwardPE?: number;
   eps?: number;
@@ -49,6 +58,18 @@ export interface DetailedStockQuote {
   summary?: string;
   website?: string;
   analystRating?: string;
+
+  // Crypto specific
+  circulatingSupply?: number;
+  totalSupply?: number;
+  maxSupply?: number;
+  volume24Hr?: number;
+  coinMarketCapLink?: string;
+  genesisDate?: string;
+
+  // Index specific
+  indexType?: string;
+  constituentsCount?: number;
 }
 
 export interface CandlePoint {
@@ -105,3 +126,30 @@ export interface SearchRecommendationData {
 export type TimeRange = "1D" | "5D" | "1M" | "6M" | "YTD" | "1Y" | "5Y" | "MAX";
 
 export type DashboardTab = "Markets" | "Crypto" | "Predictions" | "Watchlist";
+
+export interface MarketMoverItem {
+  name: string;
+  symbol: string;
+  cleanSymbol: string;
+  price: string;
+  change: string;
+  isGain: boolean;
+}
+
+export interface MarketMoversData {
+  gainers: MarketMoverItem[];
+  losers: MarketMoverItem[];
+  active: MarketMoverItem[];
+}
+
+export interface DiscoverStory {
+  id: string;
+  title: string;
+  link: string;
+  imageUrl: string;
+  publisher: string;
+  publishedAt?: string;
+  sourcesCount: number;
+  sourceDomains: string[];
+}
+

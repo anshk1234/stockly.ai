@@ -1496,7 +1496,7 @@ export function InteractiveStockChart({
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[11.5px]">
+                                    <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[11.5px]">
                     <span className="text-[var(--text-muted)]">Close</span>
                     <span className="text-[var(--text-primary)] font-[var(--weight-medium)] text-right tabular-nums">
                       {formatPrice(activePoint.candle.close, currency, symbol)}

@@ -185,29 +185,147 @@ export async function getPopularCryptos(): Promise<AssetQuote[]> {
 export async function getStockDetails(symbol: string): Promise<DetailedStockQuote | null> {
   return serverCache.getOrSet(`stock-details-${symbol}`, 15, async () => {
     try {
-      const quote = await yf.quote(symbol);
+      const quote: any = await yf.quote(symbol);
       if (!quote) return null;
 
-      const profile = await serverCache.getOrSet<any>(`profile-${symbol}`, 86400, async () => {
-        try {
-          const summary = await yf.quoteSummary(symbol, { modules: ["assetProfile"] });
-          return summary?.assetProfile || {};
-        } catch {
-          return {};
-        }
-      });
+      const rawQuoteType = (quote.quoteType || "").toUpperCase();
+      const isCrypto = rawQuoteType === "CRYPTOCURRENCY" || symbol.endsWith("-USD");
+      const isIndex = rawQuoteType === "INDEX" || symbol.startsWith("^");
+      const isEtf = rawQuoteType === "ETF";
+      const assetClass = isCrypto ? "CRYPTOCURRENCY" : isIndex ? "INDEX" : isEtf ? "ETF" : "EQUITY";
+
+      let profile: any = {};
+      if (assetClass === "EQUITY") {
+        profile = await serverCache.getOrSet<any>(`profile-${symbol}`, 86400, async () => {
+          try {
+            const summary = await yf.quoteSummary(symbol, { modules: ["assetProfile"] });
+            return summary?.assetProfile || {};
+          } catch {
+            return {};
+          }
+        });
+      }
 
       const ceoOfficer = (profile.companyOfficers || []).find((o: any) =>
         (o.title || "").toLowerCase().includes("ceo")
       );
 
-      let ipoDate = "";
-      if (quote.firstTradeDateMilliseconds) {
+      // Only assign IPO Date for corporate equities
+      let ipoDate: string | undefined = undefined;
+      if (assetClass === "EQUITY" && quote.firstTradeDateMilliseconds) {
         ipoDate = new Date(quote.firstTradeDateMilliseconds).toLocaleDateString("en-US", {
           month: "short",
           day: "numeric",
           year: "numeric",
         });
+      }
+
+      // Accurate Country attribution
+      let country = profile.country;
+      if (!country) {
+        if (isCrypto) {
+          country = "Global";
+        } else if (
+          symbol.startsWith("^NSE") ||
+          symbol.startsWith("^BSE") ||
+          symbol.endsWith(".NS") ||
+          symbol.endsWith(".BO")
+        ) {
+          country = "India";
+        } else if (
+          symbol.startsWith("^GSPC") ||
+          symbol.startsWith("^IXIC") ||
+          symbol.startsWith("^DJI")
+        ) {
+          country = "United States";
+        } else {
+          country = "United States";
+        }
+      }
+
+      // Friendly Exchange display
+      let exchange = quote.fullExchangeName || quote.exchange || "NASDAQ";
+      if (isCrypto) {
+        exchange = "Global Crypto Spot";
+      } else if (symbol.startsWith("^NSE") || symbol.endsWith(".NS") || exchange === "NSI") {
+        exchange = "NSE";
+      } else if (symbol.startsWith("^BSE") || symbol.endsWith(".BO")) {
+        exchange = "BSE";
+      } else if (exchange === "NMS" || exchange === "NGM") {
+        exchange = "NASDAQ";
+      } else if (exchange === "NYQ") {
+        exchange = "NYSE";
+      }
+
+      // Crypto Genesis / Launch dates
+      let genesisDate: string | undefined = undefined;
+      if (isCrypto) {
+        const genesisMap: Record<string, string> = {
+          "BTC-USD": "Jan 3, 2009",
+          "ETH-USD": "Jul 30, 2015",
+          "SOL-USD": "Mar 16, 2020",
+          "XRP-USD": "Jun 2, 2012",
+          "DOGE-USD": "Dec 6, 2013",
+          "ADA-USD": "Sep 29, 2017",
+        };
+        genesisDate =
+          genesisMap[symbol] ||
+          (quote.startDate
+            ? new Date(quote.startDate).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })
+            : "Decentralized Launch");
+      }
+
+      // Index Constituents count
+      let constituentsCount: number | undefined = undefined;
+      if (isIndex) {
+        if (symbol === "^NSEI") constituentsCount = 50;
+        else if (symbol === "^BSESN") constituentsCount = 30;
+        else if (symbol === "^NSEBANK") constituentsCount = 12;
+        else if (symbol === "^GSPC") constituentsCount = 500;
+        else if (symbol === "^IXIC") constituentsCount = 3000;
+        else if (symbol === "^DJI") constituentsCount = 30;
+      }
+
+      // Summary descriptions for crypto and indices
+      let summary = profile.longBusinessSummary;
+      if (!summary) {
+        if (isCrypto) {
+          if (symbol.startsWith("BTC")) {
+            summary =
+              "Bitcoin (BTC) is a decentralized digital currency created in 2009 by an unknown person or group using the name Satoshi Nakamoto. It operates on a peer-to-peer network secured by cryptographic proof-of-work consensus, enabling borderless, censorship-resistant value transfer without central intermediaries.";
+          } else if (symbol.startsWith("ETH")) {
+            summary =
+              "Ethereum (ETH) is an open-source, globally decentralized platform powered by blockchain technology. It enables developer-built smart contracts and decentralized applications (dApps) without central downtime or third-party interference.";
+          } else if (symbol.startsWith("SOL")) {
+            summary =
+              "Solana (SOL) is a high-speed, open-source blockchain architecture designed for high-frequency decentralized applications. It combines proof-of-history with proof-of-stake to achieve sub-second block finality.";
+          }
+        } else if (isIndex) {
+          if (symbol === "^NSEI") {
+            summary =
+              "The NIFTY 50 is the benchmark stock index of the National Stock Exchange of India (NSE). It captures 50 of the largest and most liquid Indian companies across 13 major economic sectors, representing roughly 60% of the free-float market capitalization of the NSE.";
+          } else if (symbol === "^BSESN") {
+            summary =
+              "The S&P BSE SENSEX is India's most recognized and tracked benchmark index on the Bombay Stock Exchange (BSE), comprising 30 of the largest and most actively traded equities in the Indian economy.";
+          } else if (symbol === "^GSPC") {
+            summary =
+              "The S&P 500 is a market-capitalization-weighted benchmark tracking 500 leading publicly traded corporations in the United States, widely recognized as the premier barometer of the US equity market.";
+          }
+        }
+      }
+
+      let sector = profile.sector;
+      let industry = profile.industry;
+      if (isCrypto) {
+        sector = "Digital Asset";
+        industry = quote.fromCurrency ? `${quote.fromCurrency} Protocol` : "Cryptocurrency";
+      } else if (isIndex) {
+        sector = "Benchmark Index";
+        industry = "Broad Market Equity Index";
       }
 
       const config = ASSET_NAMES[symbol];
@@ -217,35 +335,53 @@ export async function getStockDetails(symbol: string): Promise<DetailedStockQuot
         symbol: quote.symbol,
         name,
         shortName: quote.shortName,
-        currency: quote.currency || "USD",
-        exchange: quote.fullExchangeName || quote.exchange || "NASDAQ",
-        country: profile.country || (symbol.endsWith(".NS") || symbol.endsWith(".BO") ? "India" : "United States"),
+        currency: quote.currency || (isCrypto ? "USD" : symbol.endsWith(".NS") || symbol.startsWith("^NSE") ? "INR" : "USD"),
+        exchange,
+        country,
         price: quote.regularMarketPrice ?? 0,
         change: quote.regularMarketChange ?? 0,
         changePercent: quote.regularMarketChangePercent ?? 0,
         previousClose: quote.regularMarketPreviousClose ?? quote.regularMarketPrice ?? 0,
         marketState: quote.marketState || "REGULAR",
 
+        assetClass,
+        quoteType: quote.quoteType,
+
         marketCap: quote.marketCap,
         dayLow: quote.regularMarketDayLow,
         dayHigh: quote.regularMarketDayHigh,
         fiftyTwoWeekLow: quote.fiftyTwoWeekLow,
         fiftyTwoWeekHigh: quote.fiftyTwoWeekHigh,
-        trailingPE: quote.trailingPE,
-        forwardPE: quote.forwardPE,
-        eps: quote.epsTrailingTwelveMonths,
-        dividendYield: quote.trailingAnnualDividendYield ?? quote.dividendYield,
+        fiftyDayAverage: quote.fiftyDayAverage,
+        twoHundredDayAverage: quote.twoHundredDayAverage,
+
+        // Equity specific
+        trailingPE: assetClass === "EQUITY" ? quote.trailingPE : undefined,
+        forwardPE: assetClass === "EQUITY" ? quote.forwardPE : undefined,
+        eps: assetClass === "EQUITY" ? quote.epsTrailingTwelveMonths : undefined,
+        dividendYield: assetClass === "EQUITY" ? (quote.trailingAnnualDividendYield ?? quote.dividendYield) : undefined,
         volume: quote.regularMarketVolume,
         averageVolume: quote.averageDailyVolume3Month,
-
-        ceo: ceoOfficer?.name?.replace(/Mr\.\s+|Ms\.\s+/g, "").trim(),
+        ceo: assetClass === "EQUITY" ? ceoOfficer?.name?.replace(/Mr\.\s+|Ms\.\s+/g, "").trim() : undefined,
         ipoDate,
-        fullTimeEmployees: profile.fullTimeEmployees,
-        sector: profile.sector,
-        industry: profile.industry,
-        summary: profile.longBusinessSummary,
-        website: profile.website,
-        analystRating: quote.averageAnalystRating,
+        fullTimeEmployees: assetClass === "EQUITY" ? profile.fullTimeEmployees : undefined,
+        sector,
+        industry,
+        summary,
+        website: profile.website || quote.coinMarketCapLink,
+        analystRating: assetClass === "EQUITY" ? quote.averageAnalystRating : undefined,
+
+        // Crypto specific
+        circulatingSupply: isCrypto ? quote.circulatingSupply : undefined,
+        totalSupply: isCrypto ? quote.totalSupply : undefined,
+        maxSupply: isCrypto ? quote.maxSupply : undefined,
+        volume24Hr: isCrypto ? (quote.volume24Hr || quote.volumeAllCurrencies || quote.regularMarketVolume) : undefined,
+        genesisDate,
+        coinMarketCapLink: quote.coinMarketCapLink,
+
+        // Index specific
+        indexType: isIndex ? "Broad Market Benchmark" : undefined,
+        constituentsCount,
       };
     } catch (error) {
       console.error(`Error fetching detailed stock for ${symbol}:`, error);
