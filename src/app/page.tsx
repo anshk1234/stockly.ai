@@ -9,6 +9,7 @@ import { WatchlistWidget } from "@/components/WatchlistWidget";
 import { PredictionWidget } from "@/components/PredictionWidget";
 import { MarketMoversWidget } from "@/components/MarketMoversWidget";
 import { MarketHeatmap } from "@/components/MarketHeatmap";
+import { DiscoverSection } from "@/components/DiscoverSection";
 import { SearchModal } from "@/components/SearchModal";
 import { CryptoView } from "@/components/views/CryptoView";
 import { PredictionsView } from "@/components/views/PredictionsView";
@@ -274,6 +275,8 @@ export default function Home() {
                   />
 
                   <MarketHeatmap region={region} />
+
+                  <DiscoverSection region={region} />
                 </div>
               }
               sidebar={

@@ -43,6 +43,14 @@ export default function StockDetailPage({
   const [previousClose, setPreviousClose] = useState<number>(0);
   const [currentRange, setCurrentRange] = useState<TimeRange>("1D");
   const [activeTab, setActiveTab] = useState("Overview");
+
+  const isCrypto = stock?.assetClass === "CRYPTOCURRENCY" || symbol.endsWith("-USD");
+  const isIndex = stock?.assetClass === "INDEX" || symbol.startsWith("^");
+  const visibleTabs = isCrypto
+    ? ["Overview", "Predictions", "Historical Data", "Analysis"]
+    : isIndex
+    ? ["Overview", "Historical Data", "Analysis"]
+    : STOCK_TABS;
   const [isFollowing, setIsFollowing] = useState(false);
 
   const [isLoadingStock, setIsLoadingStock] = useState(true);
@@ -118,11 +126,11 @@ export default function StockDetailPage({
     window.location.href = `/stocks/${encodeURIComponent(selectedSymbol)}`;
   };
 
-  const getCountryFlag = (country?: string) => {
-    if (!country) return "🌐";
-    if (country === "India" || country === "IN") return "🇮🇳";
-    if (country === "United States" || country === "US") return "🇺🇸";
-    return "🌐";
+  const getCountryDisplay = (country?: string) => {
+    if (!country || country === "Global" || country === "Decentralized") return "GLOBAL";
+    if (country === "India" || country === "IN") return "INDIA 🇮🇳";
+    if (country === "United States" || country === "US") return "US 🇺🇸";
+    return country.toUpperCase();
   };
 
   return (
@@ -277,7 +285,7 @@ export default function StockDetailPage({
                       <span>•</span>
                       <span>{stock.exchange}</span>
                       <span>•</span>
-                      <span>{getCountryFlag(stock.country)}</span>
+                      <span className="font-[var(--weight-medium)]">{getCountryDisplay(stock.country)}</span>
                     </div>
                   </div>
                 </div>
@@ -305,7 +313,7 @@ export default function StockDetailPage({
 
               {/* Sub Tabs */}
               <div className="flex items-center gap-2 border-b border-[var(--border)] mb-[var(--space-5)] overflow-x-auto no-scrollbar">
-                {STOCK_TABS.map((tab) => {
+                {visibleTabs.map((tab) => {
                   const isActive = activeTab === tab;
                   return (
                     <button

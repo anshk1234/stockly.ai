@@ -44,7 +44,28 @@ const DOMAIN_MAP: Record<string, string> = {
   SOL: "solana.com",
   "XRP-USD": "ripple.com",
   XRP: "ripple.com",
+  "DOGE-USD": "dogecoin.com",
+  DOGE: "dogecoin.com",
+  "ADA-USD": "cardano.org",
+  ADA: "cardano.org",
 };
+
+// Verified logos and domains for Benchmark Market Indices
+const INDEX_MAP: Record<string, { logoUrl?: string; domain?: string }> = {
+  "^NSEI": { domain: "nseindia.com" },
+  "^NSEBANK": { domain: "nseindia.com" },
+  "^BSESN": { logoUrl: "https://www.bseindia.com/favicon.ico", domain: "bseindia.com" },
+  "^DJI": { domain: "dowjones.com" },
+  "^GSPC": { domain: "spglobal.com" },
+  "^IXIC": { domain: "nasdaq.com" },
+};
+
+const BLOCKED_DOMAINS = [
+  "coinmarketcap.com",
+  "finance.yahoo.com",
+  "yahoo.com",
+  "google.com",
+];
 
 export function cleanDomain(urlOrDomain?: string): string | null {
   if (!urlOrDomain) return null;
@@ -54,9 +75,16 @@ export function cleanDomain(urlOrDomain?: string): string | null {
       raw = "https://" + raw;
     }
     const parsed = new URL(raw);
-    return parsed.hostname.replace(/^www\./, "");
+    const host = parsed.hostname.replace(/^www\./, "");
+    if (BLOCKED_DOMAINS.some((b) => host.includes(b))) return null;
+    return host;
   } catch {
-    return urlOrDomain.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0];
+    const fallback = urlOrDomain
+      .replace(/^https?:\/\//, "")
+      .replace(/^www\./, "")
+      .split("/")[0];
+    if (BLOCKED_DOMAINS.some((b) => fallback.includes(b))) return null;
+    return fallback;
   }
 }
 
@@ -76,20 +104,81 @@ export function TickerLogo({
   className = "",
 }: TickerLogoProps) {
   const cleanSym = symbol?.toUpperCase() || "";
-  const resolvedDomain = cleanDomain(domain) || DOMAIN_MAP[cleanSym] || DOMAIN_MAP[cleanSym.split(".")[0]];
+  const isCrypto =
+    cleanSym.endsWith("-USD") ||
+    ["BTC", "ETH", "SOL", "XRP", "DOGE", "ADA", "BNB", "USDT"].includes(cleanSym);
+  const cryptoCode = cleanSym.split("-")[0].toLowerCase();
 
-  // Source stages: 0 = Google Favicon CDN (via domain), 1 = Parqet Symbol CDN, 2 = Monogram fallback
-  const [stage, setStage] = useState<number>(resolvedDomain ? 0 : 1);
+  const indexConfig = INDEX_MAP[cleanSym];
 
-  // Derive initial for fallback monogram
-  const initial = cleanSym.replace(/[^A-Z]/g, "").slice(0, 2) || (name ? name.slice(0, 1).toUpperCase() : "$");
+  const resolvedDomain =
+    indexConfig?.domain ||
+    cleanDomain(domain) ||
+    DOMAIN_MAP[cleanSym] ||
+    DOMAIN_MAP[cleanSym.split(".")[0]];
+
+  // Stage 0:
+  // - If index with direct logoUrl: load directly
+  // - If crypto: load dedicated CoinCap high-res icon
+  // - If stock with domain: load Google Favicon
+  // - Otherwise: Parqet / fallback
+  const [stage, setStage] = useState<number>(0);
 
   const handleError = () => {
     setStage((prev) => prev + 1);
   };
 
-  // Stage 0: Google Favicon CDN via company domain (128px high resolution)
-  if (stage === 0 && resolvedDomain) {
+  // Derive initial for fallback monogram
+  const initial =
+    cleanSym.replace(/[^A-Z]/g, "").slice(0, 2) ||
+    (name ? name.slice(0, 1).toUpperCase() : "$");
+
+  // 1. Direct Index Logo (e.g. BSE India official favicon)
+  if (stage === 0 && indexConfig?.logoUrl) {
+    return (
+      <div
+        className={`rounded bg-[var(--bg-card)] border border-[var(--border)] overflow-hidden flex items-center justify-center shrink-0 ${className}`}
+        style={{ width: size, height: size }}
+      >
+        <img
+          src={indexConfig.logoUrl}
+          alt={name || symbol}
+          width={size - 4}
+          height={size - 4}
+          onError={handleError}
+          className="object-contain rounded-[2px]"
+          loading="lazy"
+        />
+      </div>
+    );
+  }
+
+  // 2. Crypto Official Coin Icons (CoinCap high-resolution 2x icons)
+  if (stage <= 1 && isCrypto && cryptoCode) {
+    const cryptoIconUrl = `https://assets.coincap.io/assets/icons/${encodeURIComponent(
+      cryptoCode
+    )}@2x.png`;
+
+    return (
+      <div
+        className={`rounded bg-[var(--bg-card)] border border-[var(--border)] overflow-hidden flex items-center justify-center shrink-0 ${className}`}
+        style={{ width: size, height: size }}
+      >
+        <img
+          src={cryptoIconUrl}
+          alt={name || symbol}
+          width={size - 2}
+          height={size - 2}
+          onError={handleError}
+          className="object-contain rounded-full"
+          loading="lazy"
+        />
+      </div>
+    );
+  }
+
+  // 3. Google Favicon CDN via verified company / index domain
+  if (stage <= 2 && resolvedDomain) {
     const googleFaviconUrl = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(
       resolvedDomain
     )}&sz=128`;
@@ -112,8 +201,8 @@ export function TickerLogo({
     );
   }
 
-  // Stage 1: Financial Symbol CDN (Parqet)
-  if (stage <= 1 && cleanSym) {
+  // 4. Parqet Financial Symbol CDN
+  if (stage <= 3 && cleanSym && !cleanSym.startsWith("^")) {
     const parqetSymbolUrl = `https://assets.parqet.com/logos/symbol/${encodeURIComponent(
       cleanSym.split(".")[0]
     )}`;
@@ -136,7 +225,7 @@ export function TickerLogo({
     );
   }
 
-  // Stage 2 (Final Fallback): Clean, high-contrast graphite monogram with ticker initials
+  // 5. Final Fallback: Clean, high-contrast graphite monogram with ticker initials
   return (
     <div
       className={`rounded bg-[var(--bg-card-hover)] border border-[var(--border)] flex items-center justify-center text-[var(--text-primary)] font-bold shrink-0 tracking-tight select-none ${className}`}
