@@ -125,6 +125,8 @@ export interface SearchRecommendationData {
 
 export type TimeRange = "1D" | "5D" | "1M" | "6M" | "YTD" | "1Y" | "5Y" | "MAX";
 
+export type AssetCategory = "IN" | "US" | "EUROPE" | "ASIA" | "CURRENCIES" | "CRYPTO" | "FUTURES";
+
 export type DashboardTab = "Markets" | "Crypto" | "Predictions" | "Watchlist";
 
 export interface MarketMoverItem {

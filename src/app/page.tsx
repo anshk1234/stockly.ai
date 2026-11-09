@@ -16,10 +16,11 @@ import { CryptoView } from "@/components/views/CryptoView";
 import { PredictionsView } from "@/components/views/PredictionsView";
 import { WatchlistView } from "@/components/views/WatchlistView";
 import { PageContainer, TwoColumnLayout } from "@/components/ui/layout";
-import { AssetQuote, NewsItem, MarketSentiment, DashboardTab } from "@/lib/types";
+import { AssetQuote, NewsItem, MarketSentiment, DashboardTab, AssetCategory } from "@/lib/types";
 
 export default function Home() {
   const [region, setRegion] = useState<"IN" | "US">("IN");
+  const [activeCategory, setActiveCategory] = useState<AssetCategory>("IN");
   const [activeTab, setActiveTab] = useState<DashboardTab>("Markets");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
@@ -48,8 +49,8 @@ export default function Home() {
   const newsCacheRef = useRef<Record<string, { news: NewsItem[]; sourcesCount: number; sources: SourceItem[]; lastUpdated: Date; timestamp: number }>>({});
 
   // Fetch Top Assets (serves instantly from memory if region was recently loaded)
-  const fetchAssets = useCallback(async (selectedRegion: "IN" | "US") => {
-    const cached = assetsCacheRef.current[selectedRegion];
+  const fetchAssets = useCallback(async (selectedCat: AssetCategory | "IN" | "US") => {
+    const cached = assetsCacheRef.current[selectedCat];
     const now = Date.now();
     if (cached && now - cached.timestamp < 60000) {
       setAssets(cached.assets);
@@ -59,10 +60,10 @@ export default function Home() {
 
     setIsLoadingAssets(true);
     try {
-      const res = await fetch(`/api/assets?region=${selectedRegion}`);
+      const res = await fetch(`/api/assets?category=${selectedCat}`);
       const data = await res.json();
       if (data.assets) {
-        assetsCacheRef.current[selectedRegion] = {
+        assetsCacheRef.current[selectedCat] = {
           assets: data.assets,
           timestamp: Date.now(),
         };
@@ -142,12 +143,37 @@ export default function Home() {
     }
   }, []);
 
-  // Initial Load & Region Change
+  // Auto Geo-Detection & Initial Region Load
   useEffect(() => {
-    fetchAssets(region);
+    if (typeof window === "undefined") return;
+    const saved = localStorage.getItem("stockly-region") as "IN" | "US" | null;
+    if (saved && (saved === "IN" || saved === "US")) {
+      setRegion(saved);
+      setActiveCategory(saved);
+    } else {
+      fetch("/api/geo")
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.region && (d.region === "IN" || d.region === "US")) {
+            setRegion(d.region);
+            setActiveCategory(d.region);
+            localStorage.setItem("stockly-region", d.region);
+          }
+        })
+        .catch(() => null);
+    }
+  }, []);
+
+  // Sync assets when category or region changes
+  useEffect(() => {
+    fetchAssets(activeCategory);
+  }, [activeCategory, fetchAssets]);
+
+  // Sync news & status when primary market changes
+  useEffect(() => {
     fetchNews(region);
     fetchStatus();
-  }, [region, fetchAssets, fetchNews, fetchStatus]);
+  }, [region, fetchNews, fetchStatus]);
 
   useEffect(() => {
     fetchWatchlist(watchlistSymbols);
@@ -159,11 +185,11 @@ export default function Home() {
       if (typeof document !== "undefined" && document.visibilityState === "hidden") {
         return; // Skip poll if user is not viewing the tab, saving compute & bandwidth
       }
-      fetch(`/api/assets?region=${region}`)
+      fetch(`/api/assets?category=${activeCategory}`)
         .then((r) => r.json())
         .then((d) => {
           if (d.assets) {
-            assetsCacheRef.current[region] = { assets: d.assets, timestamp: Date.now() };
+            assetsCacheRef.current[activeCategory] = { assets: d.assets, timestamp: Date.now() };
             setAssets(d.assets);
           }
         })
@@ -187,7 +213,7 @@ export default function Home() {
       clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [region, watchlistSymbols, fetchWatchlist, fetchStatus]);
+  }, [region, activeCategory, watchlistSymbols, fetchWatchlist, fetchStatus]);
 
   // Synchronize tab state with URL search param and browser Back/Forward history
   const handleTabChange = useCallback((tab: DashboardTab) => {
@@ -244,6 +270,10 @@ export default function Home() {
         region={region}
         onRegionChange={(newRegion) => {
           setRegion(newRegion);
+          setActiveCategory(newRegion);
+          if (typeof window !== "undefined") {
+            localStorage.setItem("stockly-region", newRegion);
+          }
           handleTabChange("Markets");
         }}
         sentiment={sentiment}
@@ -262,9 +292,13 @@ export default function Home() {
                   <TopAssetsStrip
                     assets={assets}
                     region={region}
-                    onRegionToggle={() => setRegion(region === "IN" ? "US" : "IN")}
+                    activeCategory={activeCategory}
+                    onCategoryChange={(newCat) => {
+                      setActiveCategory(newCat);
+                      fetchAssets(newCat);
+                    }}
                     isLoading={isLoadingAssets}
-                    onRefresh={() => fetchAssets(region)}
+                    onRefresh={() => fetchAssets(activeCategory)}
                   />
 
                   <MarketSummary

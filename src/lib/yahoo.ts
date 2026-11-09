@@ -6,6 +6,7 @@ import {
   NewsItem,
   MarketSentiment,
   TimeRange,
+  AssetCategory,
 } from "./types";
 import { serverCache } from "./cache";
 
@@ -29,6 +30,30 @@ const ASSET_NAMES: Record<string, { name: string; currency: string }> = {
   "RELIANCE.NS": { name: "Reliance Industries", currency: "INR" },
   "TCS.NS": { name: "Tata Consultancy Services", currency: "INR" },
   "HDFCBANK.NS": { name: "HDFC Bank Ltd", currency: "INR" },
+
+  // Europe
+  "^FTSE": { name: "FTSE 100", currency: "GBP" },
+  "^GDAXI": { name: "DAX", currency: "EUR" },
+  "^FCHI": { name: "CAC 40", currency: "EUR" },
+  "^STOXX50E": { name: "EURO STOXX 50", currency: "EUR" },
+
+  // Asia
+  "^N225": { name: "Nikkei 225", currency: "JPY" },
+  "^HSI": { name: "Hang Seng Index", currency: "HKD" },
+  "000001.SS": { name: "SSE Composite", currency: "CNY" },
+  "^KS11": { name: "KOSPI Composite", currency: "KRW" },
+
+  // Currencies / Forex
+  "INR=X": { name: "USD / INR", currency: "INR" },
+  "EURUSD=X": { name: "EUR / USD", currency: "USD" },
+  "GBPUSD=X": { name: "GBP / USD", currency: "USD" },
+  "JPY=X": { name: "USD / JPY", currency: "JPY" },
+
+  // Commodities & Futures
+  "GC=F": { name: "Gold Futures", currency: "USD" },
+  "CL=F": { name: "Crude Oil Futures", currency: "USD" },
+  "ES=F": { name: "E-mini S&P 500", currency: "USD" },
+  "SI=F": { name: "Silver Futures", currency: "USD" },
 };
 
 /**
@@ -60,12 +85,36 @@ async function fetchSparkline(symbol: string): Promise<number[]> {
 /**
  * Retrieve Top Assets dynamically (cached for 15s)
  */
-export async function getTopAssets(region: "IN" | "US" = "IN"): Promise<AssetQuote[]> {
-  return serverCache.getOrSet(`top-assets-${region}`, 15, async () => {
-    const symbols =
-      region === "IN"
-        ? ["^NSEI", "^BSESN", "^NSEBANK", "BTC-USD"]
-        : ["^GSPC", "^IXIC", "^DJI", "BTC-USD"];
+export async function getTopAssets(
+  categoryOrRegion: AssetCategory | "IN" | "US" = "IN"
+): Promise<AssetQuote[]> {
+  const cat = (categoryOrRegion || "IN").toUpperCase();
+  return serverCache.getOrSet(`top-assets-${cat}`, 15, async () => {
+    let symbols: string[];
+    switch (cat) {
+      case "EUROPE":
+        symbols = ["^FTSE", "^GDAXI", "^FCHI", "^STOXX50E"];
+        break;
+      case "ASIA":
+        symbols = ["^N225", "^HSI", "000001.SS", "^KS11"];
+        break;
+      case "CURRENCIES":
+        symbols = ["INR=X", "EURUSD=X", "GBPUSD=X", "JPY=X"];
+        break;
+      case "CRYPTO":
+        symbols = ["BTC-USD", "ETH-USD", "SOL-USD", "XRP-USD"];
+        break;
+      case "FUTURES":
+        symbols = ["GC=F", "CL=F", "ES=F", "SI=F"];
+        break;
+      case "US":
+        symbols = ["^GSPC", "^IXIC", "^DJI", "BTC-USD"];
+        break;
+      case "IN":
+      default:
+        symbols = ["^NSEI", "^BSESN", "^NSEBANK", "BTC-USD"];
+        break;
+    }
 
     try {
       const quotes = await yf.quote(symbols);

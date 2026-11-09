@@ -13,6 +13,10 @@ jobs:
   validate:
     name: Lint, Type Check & Build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
 
     steps:
       - name: Checkout Code
@@ -28,10 +32,96 @@ jobs:
         run: npm ci
 
       - name: Run ESLint
+        id: lint
         run: npm run lint
+        continue-on-error: true
 
       - name: Run TypeScript Type Check
+        id: tsc
         run: npx tsc --noEmit
+        continue-on-error: true
 
       - name: Run Production Build
+        id: build
         run: npm run build
+        continue-on-error: true
+
+      - name: Post CI Summary Comment to PR
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const lint = '${{ steps.lint.outcome }}';
+            const tsc = '${{ steps.tsc.outcome }}';
+            const build = '${{ steps.build.outcome }}';
+
+            const checks = [
+              { name: 'ESLint', outcome: lint, desc: 'Code style & lint rules' },
+              { name: 'TypeScript', outcome: tsc, desc: 'Static type checking' },
+              { name: 'Production Build', outcome: build, desc: 'Next.js production build' },
+            ];
+
+            const passedCount = checks.filter(c => c.outcome === 'success').length;
+            const failedCount = checks.filter(c => c.outcome === 'failure').length;
+            const isAllPass = failedCount === 0;
+
+            const tableRows = checks.map(c => {
+              const icon = c.outcome === 'success' ? '✅ Passed' : (c.outcome === 'failure' ? '❌ Failed' : '⏭️ Skipped');
+              return `| **${c.name}** | ${icon} | ${c.desc} |`;
+            }).join('\n');
+
+            const verdict = isAllPass
+              ? '🚀 **Verdict: All tests passed successfully. This PR is ready to merge!**'
+              : '⚠️ **Verdict: One or more checks failed. This PR needs fixes before merging.**';
+
+            const botHeader = '<!-- stockly-ci-bot-report -->';
+            const body = `${botHeader}
+### 🤖 Stockly CI Bot — Pipeline Report
+
+| Check | Status | Details |
+| :--- | :---: | :--- |
+${tableRows}
+
+**Summary Statistics:**
+- 📊 **Total Checks:** ${checks.length}
+- ✅ **Passed:** ${passedCount}
+- ❌ **Failed:** ${failedCount}
+
+---
+${verdict}`;
+
+            // Check if bot already commented to update in-place and avoid duplicate spam
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existing = comments.find(c => c.body && c.body.includes(botHeader));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body: body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body,
+              });
+            }
+
+            if (!isAllPass) {
+              core.setFailed(`${failedCount} check(s) failed in CI pipeline.`);
+            }
+
+      - name: Check Overall Status (for push events)
+        if: always() && github.event_name != 'pull_request'
+        run: |
+          if [ "${{ steps.lint.outcome }}" != "success" ] || [ "${{ steps.tsc.outcome }}" != "success" ] || [ "${{ steps.build.outcome }}" != "success" ]; then
+            echo "One or more CI checks failed."
+            exit 1
+          fi

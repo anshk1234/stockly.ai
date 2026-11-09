@@ -11,6 +11,9 @@ import { PredictionWidget } from "@/components/PredictionWidget";
 import { TwoColumnLayout, Card, SectionTitle } from "@/components/ui/layout";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { MarketSummary, SourceItem } from "@/components/MarketSummary";
+import { CryptoLeaderboard } from "@/components/crypto/CryptoLeaderboard";
+import { DiscoverSection } from "@/components/DiscoverSection";
+import { CryptoStandouts } from "@/components/crypto/CryptoStandouts";
 
 interface CryptoViewProps {
   watchlist: AssetQuote[];
@@ -182,6 +185,15 @@ export function CryptoView({
         sourcesCount={sourcesCount}
         sources={sources}
       />
+
+      {/* 1. Crypto Leaderboard (Coinbase vs All Exchanges) */}
+      <CryptoLeaderboard />
+
+      {/* 2. Crypto Discover Section */}
+      <DiscoverSection category="CRYPTO" />
+
+      {/* 3. Crypto Standouts */}
+      <CryptoStandouts />
     </div>
   );
 
