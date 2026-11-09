@@ -12,6 +12,7 @@ A lightweight, highly optimized financial intelligence platform to track global 
 
 ## ✨ Features
 
+
 - **Live Market Intelligence**: Real-time quotes, multi-period performance metrics, and financial news dynamically streamed via Yahoo Finance.
 - **Interactive Pro Charting**:
   - Pointer-anchored mouse wheel zoom in and out.
