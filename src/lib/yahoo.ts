@@ -37,7 +37,7 @@ const ASSET_NAMES: Record<string, { name: string; currency: string }> = {
 async function fetchSparkline(symbol: string): Promise<number[]> {
   return serverCache.getOrSet(`sparkline-${symbol}`, 30, async () => {
     try {
-      const period1 = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+      const period1 = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
       const result = await yf.chart(symbol, {
         period1,
         interval: "15m",
@@ -455,14 +455,26 @@ export async function getStockChart(
           const cutoff = now - 24 * 60 * 60 * 1000;
           quotes = quotes.filter((q) => q.date && new Date(q.date).getTime() >= cutoff);
         } else {
+          // Check if there are active candles from the current regular session
           const regularStart = result?.meta?.currentTradingPeriod?.regular?.start;
-          if (regularStart) {
-            const startMs = new Date(regularStart).getTime();
-            quotes = quotes.filter((q) => q.date && new Date(q.date).getTime() >= startMs);
+          const startMs = regularStart ? new Date(regularStart).getTime() : 0;
+
+          // If regular session has begun and has candles, use today's session
+          const currentSessionQuotes =
+            startMs > 0 && startMs <= now
+              ? quotes.filter((q) => q.date && new Date(q.date).getTime() >= startMs)
+              : [];
+
+          if (currentSessionQuotes.length > 0) {
+            quotes = currentSessionQuotes;
           } else {
-            // Fallback: take candles from the last 10 hours of the latest candle
-            const lastMs = new Date(quotes[quotes.length - 1].date).getTime();
-            quotes = quotes.filter((q) => q.date && new Date(q.date).getTime() >= lastMs - 10 * 60 * 60 * 1000);
+            // Market is closed, weekend, pre-market, or holiday:
+            // Group by the most recent active trading session anchored to the latest candle
+            const lastCandleMs = new Date(quotes[quotes.length - 1].date).getTime();
+            // A regular market session is ~6.5 hours (extended pre/post up to ~14 hours)
+            quotes = quotes.filter(
+              (q) => q.date && new Date(q.date).getTime() >= lastCandleMs - 14 * 60 * 60 * 1000
+            );
           }
         }
       }
