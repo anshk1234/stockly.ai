@@ -75,22 +75,23 @@ jobs:
               : '⚠️ **Verdict: One or more checks failed. This PR needs fixes before merging.**';
 
             const botHeader = '<!-- stockly-ci-bot-report -->';
-            const body = `${botHeader}
-### 🤖 Stockly CI Bot — Pipeline Report
+            const body = [
+              botHeader,
+              '### 🤖 Stockly CI Bot — Pipeline Report',
+              '',
+              '| Check | Status | Details |',
+              '| :--- | :---: | :--- |',
+              tableRows,
+              '',
+              '**Summary Statistics:**',
+              `- 📊 **Total Checks:** ${checks.length}`,
+              `- ✅ **Passed:** ${passedCount}`,
+              `- ❌ **Failed:** ${failedCount}`,
+              '',
+              '---',
+              verdict,
+            ].join('\n');
 
-| Check | Status | Details |
-| :--- | :---: | :--- |
-${tableRows}
-
-**Summary Statistics:**
-- 📊 **Total Checks:** ${checks.length}
-- ✅ **Passed:** ${passedCount}
-- ❌ **Failed:** ${failedCount}
-
----
-${verdict}`;
-
-            // Check if bot already commented to update in-place and avoid duplicate spam
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
