@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import { ChevronDown, Check } from "lucide-react";
 import { MarketSentiment, DashboardTab } from "@/lib/types";
 
 interface SubHeaderProps {
@@ -14,8 +14,8 @@ interface SubHeaderProps {
 
 const TABS: DashboardTab[] = ["Crypto", "Predictions", "Watchlist"];
 
-// Crisp vector flags to avoid Windows OS emoji font fallback rendering as "IN" / "US" text
-function IndiaFlagIcon({ className = "w-4 h-3" }: { className?: string }) {
+// Crisp vector flags avoiding OS emoji font fallback
+export function IndiaFlagIcon({ className = "w-4 h-3" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 16" fill="none" xmlns="http://www.w3.org/2000/svg">
       <rect width="24" height="16" rx="2" fill="#FFFFFF" />
@@ -27,7 +27,7 @@ function IndiaFlagIcon({ className = "w-4 h-3" }: { className?: string }) {
   );
 }
 
-function USFlagIcon({ className = "w-4 h-3" }: { className?: string }) {
+export function USFlagIcon({ className = "w-4 h-3" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 16" fill="none" xmlns="http://www.w3.org/2000/svg">
       <rect width="24" height="16" rx="2" fill="#B22234" />
@@ -49,63 +49,89 @@ export function SubHeader({
   onTabChange,
 }: SubHeaderProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    }
+    if (dropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [dropdownOpen]);
+
+  const handleSelectRegion = (newRegion: "IN" | "US") => {
+    onRegionChange(newRegion);
+    onTabChange("Markets");
+    setDropdownOpen(false);
+  };
 
   return (
-    <div className="w-full border-b border-[var(--border)] bg-[var(--bg-page)]">
-      <div className="w-full max-w-[var(--container-max)] mx-auto px-[var(--page-gutter)] py-2 flex flex-col md:flex-row md:items-center justify-between gap-3 overflow-x-auto no-scrollbar">
+    <div className="w-full border-b border-[var(--border)] bg-[var(--bg-page)] relative z-30">
+      <div className="w-full max-w-[var(--container-max)] mx-auto px-[var(--page-gutter)] py-2 flex flex-col md:flex-row md:items-center justify-between gap-3">
         {/* Navigation Tabs and Market Selector */}
         <div className="flex items-center gap-2 shrink-0">
-          {/* Region Dropdown */}
-          <div className="relative">
+          {/* Primary Market Dropdown (1:1 Perplexity Finance) */}
+          <div className="relative" ref={dropdownRef}>
             <button
-              onClick={() => {
-                setDropdownOpen(!dropdownOpen);
-                onTabChange("Markets");
+              onClick={(e) => {
+                e.stopPropagation();
+                setDropdownOpen((prev) => !prev);
+                if (activeTab !== "Markets") {
+                  onTabChange("Markets");
+                }
               }}
-              className={`flex items-center gap-1.5 px-2 py-1 text-[13px] font-[var(--weight-medium)] rounded-md transition-colors ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 text-[13px] font-[var(--weight-medium)] rounded-md transition-colors ${
                 activeTab === "Markets"
-                  ? "text-[var(--text-primary)] border-b-2 border-[var(--text-primary)] pb-1 -mb-2"
+                  ? "text-[var(--text-primary)] border-b-2 border-white pb-1 -mb-[5px]"
                   : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
               }`}
             >
               {region === "IN" ? <IndiaFlagIcon /> : <USFlagIcon />}
               <span>{region === "IN" ? "India Markets" : "US Markets"}</span>
-              <ChevronDown className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+              <ChevronDown className="w-3.5 h-3.5 text-[var(--text-muted)] transition-transform duration-200" />
             </button>
 
             {dropdownOpen && (
-              <div className="absolute left-0 mt-2 w-44 rounded-[var(--radius-card)] bg-[var(--bg-card)] border border-[var(--border)] shadow-xl py-1 z-50">
+              <div className="absolute left-0 mt-2.5 w-48 rounded-xl bg-[#18191d] border border-white/10 shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                {/* Option: US Markets */}
                 <button
-                  onClick={() => {
-                    onRegionChange("IN");
-                    onTabChange("Markets");
-                    setDropdownOpen(false);
-                  }}
-                  className={`w-full text-left px-3 py-2 text-[12px] flex items-center justify-between hover:bg-[var(--bg-card-hover)] transition-colors ${
-                    region === "IN" ? "text-[var(--positive)] font-[var(--weight-medium)]" : "text-[var(--text-muted)]"
+                  type="button"
+                  onClick={() => handleSelectRegion("US")}
+                  className={`w-full text-left px-3 py-2 text-[12.5px] rounded-lg flex items-center justify-between hover:bg-white/5 transition-colors ${
+                    region === "US"
+                      ? "text-white font-[var(--weight-medium)] bg-white/[0.04]"
+                      : "text-[var(--text-muted)] hover:text-white"
                   }`}
                 >
-                  <span className="flex items-center gap-2">
-                    <IndiaFlagIcon />
-                    <span>India Markets</span>
-                  </span>
-                  {region === "IN" && <span className="w-1.5 h-1.5 rounded-full bg-[var(--positive)]"></span>}
-                </button>
-                <button
-                  onClick={() => {
-                    onRegionChange("US");
-                    onTabChange("Markets");
-                    setDropdownOpen(false);
-                  }}
-                  className={`w-full text-left px-3 py-2 text-[12px] flex items-center justify-between hover:bg-[var(--bg-card-hover)] transition-colors ${
-                    region === "US" ? "text-[var(--positive)] font-[var(--weight-medium)]" : "text-[var(--text-muted)]"
-                  }`}
-                >
-                  <span className="flex items-center gap-2">
+                  <span className="flex items-center gap-2.5">
                     <USFlagIcon />
                     <span>US Markets</span>
                   </span>
-                  {region === "US" && <span className="w-1.5 h-1.5 rounded-full bg-[var(--positive)]"></span>}
+                  {region === "US" && <Check className="w-3.5 h-3.5 text-neutral-300" />}
+                </button>
+
+                {/* Option: India Markets */}
+                <button
+                  type="button"
+                  onClick={() => handleSelectRegion("IN")}
+                  className={`w-full text-left px-3 py-2 text-[12.5px] rounded-lg flex items-center justify-between hover:bg-white/5 transition-colors ${
+                    region === "IN"
+                      ? "text-white font-[var(--weight-medium)] bg-white/[0.04]"
+                      : "text-[var(--text-muted)] hover:text-white"
+                  }`}
+                >
+                  <span className="flex items-center gap-2.5">
+                    <IndiaFlagIcon />
+                    <span>India Markets</span>
+                  </span>
+                  {region === "IN" && <Check className="w-3.5 h-3.5 text-neutral-300" />}
                 </button>
               </div>
             )}
@@ -123,7 +149,7 @@ export function SubHeader({
                   onClick={() => onTabChange(tab)}
                   className={`px-2 py-1 rounded-md transition-colors whitespace-nowrap font-[var(--weight-medium)] ${
                     isActive
-                      ? "text-[var(--text-primary)] border-b-2 border-[var(--text-primary)] pb-1 -mb-2"
+                      ? "text-[var(--text-primary)] border-b-2 border-white pb-1 -mb-[5px]"
                       : "hover:text-[var(--text-primary)]"
                   }`}
                 >
@@ -150,20 +176,32 @@ export function SubHeader({
                 />
               ))}
             </div>
-            <span className="tracking-tight">
-              {sentiment?.description || "Bullish Sentiment"}
-            </span>
+            <span>{sentiment?.status ?? "Upbeat"} Sentiment</span>
           </div>
 
-          {/* Market Clock & Status (clean separator without stray bullet) */}
+          <span className="text-[var(--border)]">•</span>
+
+          {/* Live Market Clock */}
           <div className="flex items-center gap-1.5 text-[var(--text-muted)]">
             <span
               className={`w-1.5 h-1.5 rounded-full ${
-                sentiment?.marketOpen ? "bg-[var(--positive)]" : "bg-[var(--text-muted)]"
+                sentiment?.marketOpen ?? true
+                  ? "bg-[var(--positive)] animate-pulse"
+                  : "bg-neutral-500"
               }`}
             />
             <span>
-              {sentiment?.marketOpen ? "Markets Open" : "Markets Closed"} · {sentiment?.marketTimeIST || "IST"}
+              {sentiment?.marketOpen ?? true ? "Markets Open" : "Markets Closed"}
+            </span>
+            <span>•</span>
+            <span className="tabular-nums">
+              {sentiment?.marketTimeIST ||
+                new Date().toLocaleTimeString("en-IN", {
+                  timeZone: "Asia/Kolkata",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: true,
+                }) + ", IST"}
             </span>
           </div>
         </div>

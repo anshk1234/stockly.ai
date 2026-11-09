@@ -37,6 +37,12 @@ const US_DOMAINS = [
   ["marketwatch.com", "barrons.com", "investopedia.com"],
 ];
 
+const CRYPTO_DOMAINS = [
+  ["cointelegraph.com", "coindesk.com", "decrypt.co"],
+  ["coindesk.com", "bloomberg.com", "theblock.co"],
+  ["decrypt.co", "cointelegraph.com", "reuters.com"],
+];
+
 async function fetchIndianDiscover(): Promise<DiscoverStory[]> {
   try {
     const res = await fetch("https://www.livemint.com/rss/markets", {
@@ -129,12 +135,75 @@ async function fetchUSDiscover(): Promise<DiscoverStory[]> {
   }
 }
 
+async function fetchCryptoDiscover(): Promise<DiscoverStory[]> {
+  try {
+    const res = await fetch("https://cointelegraph.com/rss", {
+      headers: {
+        "User-Agent": "Mozilla/5.0 Stockly/1.0",
+      },
+      next: { revalidate: 900 },
+    });
+    if (!res.ok) throw new Error(`Cointelegraph RSS responded with ${res.status}`);
+
+    const xml = await res.text();
+    const items = xml.split("<item>");
+    const stories: DiscoverStory[] = [];
+
+    for (let i = 1; i < items.length && stories.length < 9; i++) {
+      const it = items[i];
+      const titleMatch = it.match(/<title>([\s\S]*?)<\/title>/);
+      const linkMatch = it.match(/<link>([\s\S]*?)<\/link>/);
+      const mediaMatch =
+        it.match(/<enclosure[^>]*url="([^"]+)"/) ||
+        it.match(/<media:content[^>]*url="([^"]+)"/);
+      const pubDateMatch = it.match(/<pubDate>([\s\S]*?)<\/pubDate>/);
+
+      if (titleMatch) {
+        const title = titleMatch[1]
+          .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
+          .replace(/<[^>]*>/g, "")
+          .trim();
+
+        if (!title) continue;
+
+        const link = linkMatch
+          ? linkMatch[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").trim()
+          : "https://cointelegraph.com";
+
+        const imageUrl =
+          mediaMatch?.[1] || FALLBACK_IMAGES[stories.length % FALLBACK_IMAGES.length];
+        const publishedAt = pubDateMatch ? pubDateMatch[1].trim() : undefined;
+
+        stories.push({
+          id: `crypto-discover-${stories.length + 1}`,
+          title,
+          link,
+          imageUrl,
+          publisher: "Cointelegraph",
+          publishedAt,
+          sourcesCount: 18 + (stories.length * 2) + (stories.length % 5),
+          sourceDomains: CRYPTO_DOMAINS[stories.length % CRYPTO_DOMAINS.length],
+        });
+      }
+    }
+
+    return stories;
+  } catch (err) {
+    console.error("fetchCryptoDiscover error:", err);
+    return [];
+  }
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const region = (searchParams.get("region")?.toUpperCase() || "IN") as "IN" | "US";
+  const categoryParam = (
+    searchParams.get("category") ||
+    searchParams.get("region") ||
+    "IN"
+  ).toUpperCase();
 
   // Check cache
-  const cached = serverCache[region];
+  const cached = serverCache[categoryParam];
   if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS && cached.data.length > 0) {
     return NextResponse.json({ stories: cached.data }, {
       headers: {
@@ -143,11 +212,18 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  const stories = region === "IN" ? await fetchIndianDiscover() : await fetchUSDiscover();
+  let stories: DiscoverStory[];
+  if (categoryParam === "CRYPTO") {
+    stories = await fetchCryptoDiscover();
+  } else if (categoryParam === "IN") {
+    stories = await fetchIndianDiscover();
+  } else {
+    stories = await fetchUSDiscover();
+  }
 
   // If fetch succeeded, update cache
   if (stories.length > 0) {
-    serverCache[region] = {
+    serverCache[categoryParam] = {
       data: stories,
       timestamp: Date.now(),
     };

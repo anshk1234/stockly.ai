@@ -6,14 +6,16 @@ import { DiscoverStory } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 interface DiscoverSectionProps {
-  region: "IN" | "US";
+  region?: "IN" | "US";
+  category?: "IN" | "US" | "CRYPTO";
 }
 
-// Client-side cache: 15-minute freshness per region
+// Client-side cache: 15-minute freshness per category
 const discoverClientCache: Record<string, { stories: DiscoverStory[]; timestamp: number }> = {};
 const CACHE_TTL_MS = 15 * 60 * 1000;
 
-export function DiscoverSection({ region }: DiscoverSectionProps) {
+export function DiscoverSection({ region = "IN", category }: DiscoverSectionProps) {
+  const activeKey = (category || region).toUpperCase();
   const [stories, setStories] = useState<DiscoverStory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
@@ -24,8 +26,8 @@ export function DiscoverSection({ region }: DiscoverSectionProps) {
   const touchStartXRef = useRef<number | null>(null);
 
   // Fetch stories
-  const fetchDiscoverStories = useCallback(async (selectedRegion: "IN" | "US") => {
-    const cached = discoverClientCache[selectedRegion];
+  const fetchDiscoverStories = useCallback(async (selectedKey: string) => {
+    const cached = discoverClientCache[selectedKey];
     if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS && cached.stories.length > 0) {
       setStories(cached.stories);
       setIsLoading(false);
@@ -34,10 +36,10 @@ export function DiscoverSection({ region }: DiscoverSectionProps) {
 
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/discover?region=${selectedRegion}`);
+      const res = await fetch(`/api/discover?category=${selectedKey}`);
       const data = await res.json();
       if (data.stories && Array.isArray(data.stories)) {
-        discoverClientCache[selectedRegion] = {
+        discoverClientCache[selectedKey] = {
           stories: data.stories,
           timestamp: Date.now(),
         };
@@ -52,8 +54,8 @@ export function DiscoverSection({ region }: DiscoverSectionProps) {
 
   useEffect(() => {
     setCurrentPage(0);
-    fetchDiscoverStories(region);
-  }, [region, fetchDiscoverStories]);
+    fetchDiscoverStories(activeKey);
+  }, [activeKey, fetchDiscoverStories]);
 
   // Group stories into pages of 3
   const pageSize = 3;

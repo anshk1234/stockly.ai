@@ -5,25 +5,30 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  INR: "₹",
+  USD: "$",
+  USDT: "$",
+  EUR: "€",
+  GBP: "£",
+  JPY: "¥",
+  CNY: "¥",
+  HKD: "HK$",
+  KRW: "₩",
+};
+
 export function formatPrice(price: number, currency: string = "USD", symbol?: string): string {
   if (isNaN(price) || price === null || price === undefined) return "0.00";
 
-  // Financial index points (e.g. NIFTY 50, S&P BSE SENSEX) don't carry currency symbol
-  const isIndex = symbol?.startsWith("^") || symbol?.includes("NIFTY") || symbol?.includes("SENSEX");
-
-  const isUSD = currency === "USD" || currency === "$" || currency === "USDT";
   const isINR = currency === "INR" || currency === "₹";
-
   const formatter = new Intl.NumberFormat(isINR ? "en-IN" : "en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
 
   const formatted = formatter.format(price);
-  if (isIndex) return formatted;
-  if (isUSD) return `$${formatted}`;
-  if (isINR) return `₹${formatted}`;
-  return formatted;
+  const prefix = CURRENCY_SYMBOLS[currency?.toUpperCase()] || (currency ? currency + " " : "");
+  return `${prefix}${formatted}`;
 }
 
 export function formatChange(change: number, currency: string = "USD", symbol?: string): string {
@@ -31,17 +36,14 @@ export function formatChange(change: number, currency: string = "USD", symbol?: 
   const sign = change >= 0 ? "+" : "-";
   const abs = Math.abs(change);
 
-  const isIndex = symbol?.startsWith("^") || symbol?.includes("NIFTY") || symbol?.includes("SENSEX");
-  const isUSD = currency === "USD" || currency === "$";
   const isINR = currency === "INR" || currency === "₹";
-
   const formatter = new Intl.NumberFormat(isINR ? "en-IN" : "en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
 
-  const currPrefix = isIndex ? "" : isUSD ? "$" : isINR ? "₹" : "";
-  return `${sign}${currPrefix}${formatter.format(abs)}`;
+  const prefix = CURRENCY_SYMBOLS[currency?.toUpperCase()] || "";
+  return `${sign}${prefix}${formatter.format(abs)}`;
 }
 
 export function formatPercent(percent: number, showSign: boolean = true): string {
