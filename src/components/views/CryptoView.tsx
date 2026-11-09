@@ -8,12 +8,13 @@ import { formatPrice, formatPercent, formatChange } from "@/lib/utils";
 import { SparklineChart } from "@/components/SparklineChart";
 import { WatchlistWidget } from "@/components/WatchlistWidget";
 import { PredictionWidget } from "@/components/PredictionWidget";
-import { TwoColumnLayout, Card, SectionTitle } from "@/components/ui/layout";
+import { TwoColumnLayout, SectionTitle } from "@/components/ui/layout";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { MarketSummary, SourceItem } from "@/components/MarketSummary";
 import { CryptoLeaderboard } from "@/components/crypto/CryptoLeaderboard";
 import { DiscoverSection } from "@/components/DiscoverSection";
 import { CryptoStandouts } from "@/components/crypto/CryptoStandouts";
+import { FinancialDisclaimer } from "@/components/FinancialDisclaimer";
 
 interface CryptoViewProps {
   watchlist: AssetQuote[];
@@ -207,6 +208,9 @@ export function CryptoView({
 
       {/* Crypto Prediction Markets (Live from Polymarket) */}
       <PredictionWidget category="Crypto" />
+
+      {/* Financial Data & Charting Attribution Disclaimer */}
+      <FinancialDisclaimer />
     </div>
   );
 
