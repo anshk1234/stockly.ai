@@ -2,6 +2,7 @@
 
 [![CI Pipeline](https://github.com/anshk1234/stockly.ai/actions/workflows/ci.yml/badge.svg)](https://github.com/anshk1234/stockly.ai/actions/workflows/ci.yml)
 [![Vercel Deployment](https://img.shields.io/badge/Deployed%20on-Vercel-black?logo=vercel)](https://stocklyai.vercel.app/)
+[![Database: Cloudflare D1](https://img.shields.io/badge/Database-Cloudflare%20D1-F38020?logo=cloudflare&logoColor=white)](https://developers.cloudflare.com/d1/)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 A lightweight, highly optimized financial intelligence platform to track global stocks, cryptocurrencies, and prediction markets in real-time. Engineered to handle large-scale live market data with minimal resource consumption.
@@ -30,6 +31,7 @@ A lightweight, highly optimized financial intelligence platform to track global 
 
 - **Framework**: [Next.js 16](https://nextjs.org/) (App Router, Turbopack)
 - **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **Database**: [Cloudflare D1](https://developers.cloudflare.com/d1/) (Serverless Edge SQL)
 - **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
 - **Icons**: [Lucide React](https://lucide.dev/)
 - **Data Engine**: `yahoo-finance2` API with in-memory TTL caching
@@ -85,4 +87,4 @@ npm run build
 
 ## 📄 License
 
-Licensed under the [Apache-2.0 License](LICENSE).
+Licensed under the [Apache-2.0 License](LICENSE) © 2026 Ansh Kunwar.
