@@ -1,42 +1,37 @@
 <div align="center">
-  <img src="public/icon.svg" alt="Stockly.ai Logo" width="96" height="96" />
-  <h1>Stockly.ai</h1>
-  <p><strong>Real-Time Financial Intelligence & Market Terminal at the Edge.</strong></p>
-  <p>
-    Track global equities, Indian & US indices, cryptocurrencies, and prediction markets — powered by Next.js 16 and Cloudflare D1 with sub-millisecond edge persistence.
-  </p>
-  <p>
-    <a href="https://stocklyai.vercel.app/"><strong>Live Terminal</strong></a> ·
-    <a href="#-how-it-works">Architecture</a> ·
-    <a href="#-core-features">Features</a> ·
-    <a href="#-quick-start">Quick Start</a> ·
-    <a href="#-database-schema">Database</a> ·
-    <a href="#-license">License</a>
-  </p>
-  <p>
-    <a href="https://github.com/anshk1234/stockly.ai/actions/workflows/ci.yml">
-      <img src="https://github.com/anshk1234/stockly.ai/actions/workflows/ci.yml/badge.svg" alt="CI Pipeline" />
-    </a>
-    <a href="https://stocklyai.vercel.app/">
-      <img src="https://img.shields.io/badge/Deployed%20on-Vercel-black?logo=vercel" alt="Vercel Deployment" />
-    </a>
-    <a href="https://developers.cloudflare.com/d1/">
-      <img src="https://img.shields.io/badge/Database-Cloudflare%20D1-F38020?logo=cloudflare&logoColor=white" alt="Database: Cloudflare D1" />
-    </a>
-    <a href="https://nextjs.org/">
-      <img src="https://img.shields.io/badge/Framework-Next.js%2016-black?logo=next.js" alt="Next.js 16" />
-    </a>
-    <a href="https://react.dev/">
-      <img src="https://img.shields.io/badge/UI-React%2019-61DAFB?logo=react&logoColor=black" alt="React 19" />
-    </a>
-    <a href="https://tailwindcss.com/">
-      <img src="https://img.shields.io/badge/Styling-Tailwind%20CSS%20v4-38B2AC?logo=tailwind-css&logoColor=white" alt="Tailwind CSS v4" />
-    </a>
-    <a href="LICENSE">
-      <img src="https://img.shields.io/badge/License-Apache--2.0-blue.svg" alt="License: Apache-2.0" />
-    </a>
-  </p>
+  <a href="https://stocklyai.vercel.app">
+    <img src="public/readme-banner.webp" alt="Stockly.ai Banner" width="100%" />
+  </a>
 </div>
+
+<h1 align="center">Stockly.ai</h1>
+
+<p align="center">
+  <strong>Real-Time Financial Intelligence & Market Terminal at the Edge.</strong>
+</p>
+
+<p align="center">
+  Track global equities, Indian & US indices, cryptocurrencies, and prediction markets — powered by Next.js 16 and Cloudflare D1 with sub-millisecond edge persistence.
+</p>
+
+<p align="center">
+  <a href="https://stocklyai.vercel.app/"><strong>Live Terminal</strong></a> ·
+  <a href="#-how-it-works">Architecture</a> ·
+  <a href="#-core-features">Features</a> ·
+  <a href="#-quick-start">Quick Start</a> ·
+  <a href="#-database-architecture">Database</a> ·
+  <a href="#-license">License</a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/anshk1234/stockly.ai/actions/workflows/ci.yml"><img src="https://github.com/anshk1234/stockly.ai/actions/workflows/ci.yml/badge.svg" alt="CI Pipeline" /></a>
+  <a href="https://stocklyai.vercel.app/"><img src="https://img.shields.io/badge/Deployed%20on-Vercel-black?logo=vercel" alt="Vercel Deployment" /></a>
+  <a href="https://developers.cloudflare.com/d1/"><img src="https://img.shields.io/badge/Database-Cloudflare%20D1-F38020?logo=cloudflare&logoColor=white" alt="Database: Cloudflare D1" /></a>
+  <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Framework-Next.js%2016-black?logo=next.js" alt="Next.js 16" /></a>
+  <a href="https://react.dev/"><img src="https://img.shields.io/badge/UI-React%2019-61DAFB?logo=react&logoColor=black" alt="React 19" /></a>
+  <a href="https://tailwindcss.com/"><img src="https://img.shields.io/badge/Styling-Tailwind%20CSS%20v4-38B2AC?logo=tailwind-css&logoColor=white" alt="Tailwind CSS v4" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache--2.0-blue.svg" alt="License: Apache-2.0" /></a>
+</p>
 
 ---
 
@@ -215,9 +210,19 @@ stockly.ai/
 
 ---
 
-## 🗄️ Database Schema
+## 🗄️ Database Architecture
 
-The database runs on **Cloudflare D1**. Schema definitions are located in [`schema.sql`](schema.sql):
+The persistence layer runs on **Cloudflare D1** (serverless edge SQLite) with zero spin-up cold starts and sub-millisecond query execution. Schema definitions are tracked in [`schema.sql`](schema.sql):
+
+| Table | Purpose | Indexing & Constraints |
+|:---|:---|:---|
+| `users` | Authenticated Google OAuth profiles & metadata | Primary Key: `id` (Google `sub`), Unique `email` |
+| `watchlists` | Edge-persisted user symbols and asset types | Composite Unique: `(user_id, symbol)`, Index: `idx_watchlists_user` |
+| `price_alerts` | Real-time threshold targets & notify channels | Index: `idx_price_alerts_user`, `idx_price_alerts_status` |
+| `portfolios` | Multi-asset portfolio holdings & allocations | Foreign Key: `user_id` CASCADE |
+
+<details>
+<summary><b>View Cloudflare D1 SQL Schema</b></summary>
 
 ```sql
 -- 1. Users Table (Google OAuth profile & 30-day session)
@@ -256,6 +261,7 @@ CREATE TABLE IF NOT EXISTS price_alerts (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 ```
+</details>
 
 ---
 
@@ -344,17 +350,11 @@ Please ensure your changes pass the production build (`npm run build`) and linti
   <table width="60%">
     <tr align="center">
       <td valign="top">
-        <a href="https://github.com/anshk1234" target="_blank">
-          <img src="https://github.com/anshk1234.png" width="100" style="border-radius:50%;" alt="Ansh Kunwar"/><br/>
-          <strong>Ansh Kunwar</strong>
-        </a>
+        <a href="https://github.com/anshk1234" target="_blank"><img src="https://github.com/anshk1234.png" width="100" style="border-radius:50%;" alt="Ansh Kunwar"/></a>
+        <br/>
+        <strong>Ansh Kunwar</strong>
         <p>
-          <a href="https://github.com/anshk1234" target="_blank">
-            <img src="https://img.shields.io/badge/GitHub-anshk1234-181717?style=flat&logo=github&logoColor=white" alt="GitHub"/>
-          </a>
-          <a href="mailto:anshkunwar3009@gmail.com">
-            <img src="https://img.shields.io/badge/Email-anshkunwar3009@gmail.com-EA4335?style=flat&logo=gmail&logoColor=white" alt="Email"/>
-          </a>
+          <a href="https://github.com/anshk1234" target="_blank"><img src="https://img.shields.io/badge/GitHub-anshk1234-181717?style=flat&logo=github&logoColor=white" alt="GitHub"/></a>&nbsp;&nbsp;<a href="mailto:anshkunwar3009@gmail.com"><img src="https://img.shields.io/badge/Email-anshkunwar3009@gmail.com-EA4335?style=flat&logo=gmail&logoColor=white" alt="Email"/></a>
         </p>
       </td>
     </tr>
