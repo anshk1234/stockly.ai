@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { AppProviders } from "@/components/providers/AppProviders";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -27,7 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} dark`}>
       <body className="min-h-screen bg-[#141517] text-[#EDEDEE] font-sans antialiased selection:bg-emerald-500/25 selection:text-emerald-300">
-        {children}
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );

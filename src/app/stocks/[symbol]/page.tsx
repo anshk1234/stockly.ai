@@ -16,6 +16,7 @@ import { CompanyProfileWidget } from "@/components/stock/CompanyProfileWidget";
 import { PageContainer, TwoColumnLayout, Card } from "@/components/ui/layout";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { DetailedStockQuote, CandlePoint, TimeRange } from "@/lib/types";
+import { useApp } from "@/context/AppContext";
 
 const STOCK_TABS = [
   "Overview",
@@ -38,6 +39,38 @@ export default function StockDetailPage({
   const [stock, setStock] = useState<DetailedStockQuote | null>(null);
   const [candles, setCandles] = useState<CandlePoint[]>([]);
   const [previousClose, setPreviousClose] = useState<number>(0);
+  const { isGuest, openAuthModal, openAlertModal, isWatchlistSaved, toggleWatchlist } = useApp();
+
+  const isFollowing = isWatchlistSaved(symbol);
+
+  const handleFollowClick = async () => {
+    if (isGuest) {
+      openAuthModal("watchlist");
+      return;
+    }
+    await toggleWatchlist(
+      symbol,
+      stock?.name || symbol,
+      isCrypto ? "CRYPTO" : isIndex ? "INDEX" : "STOCK"
+    );
+  };
+
+  const handleAlertClick = () => {
+    openAlertModal(
+      stock
+        ? {
+            symbol: stock.symbol,
+            name: stock.name,
+            price: stock.price,
+            currency: stock.currency,
+          }
+        : {
+            symbol,
+            name: symbol,
+            price: 0,
+          }
+    );
+  };
   const [currentRange, setCurrentRange] = useState<TimeRange>("1D");
   const [activeTab, setActiveTab] = useState("Overview");
 
@@ -48,7 +81,6 @@ export default function StockDetailPage({
     : isIndex
     ? ["Overview", "Historical Data", "Analysis"]
     : STOCK_TABS;
-  const [isFollowing, setIsFollowing] = useState(false);
 
   const [isLoadingStock, setIsLoadingStock] = useState(true);
   const [isLoadingChart, setIsLoadingChart] = useState(true);
@@ -154,7 +186,8 @@ export default function StockDetailPage({
 
           <div className="flex items-center justify-end gap-2.5 shrink-0">
             <button
-              onClick={() => setIsFollowing(!isFollowing)}
+              type="button"
+              onClick={handleFollowClick}
               className={`p-1.5 rounded-full border transition-colors ${
                 isFollowing
                   ? "bg-[var(--positive)]/15 border-[var(--positive)]/30 text-[var(--positive)]"
@@ -294,7 +327,8 @@ export default function StockDetailPage({
                 {/* Action Buttons */}
                 <div className="flex items-center gap-[var(--space-2)]">
                   <button
-                    onClick={() => setIsFollowing(!isFollowing)}
+                    type="button"
+                    onClick={handleFollowClick}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-card)] text-[var(--text-xs)] font-[var(--weight-medium)] border transition-all ${
                       isFollowing
                         ? "bg-[var(--positive)]/10 border-[var(--positive)]/30 text-[var(--positive)]"
@@ -305,7 +339,7 @@ export default function StockDetailPage({
                     <span>{isFollowing ? "Following" : "Follow"}</span>
                   </button>
 
-                  <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-card)] text-[var(--text-xs)] font-[var(--weight-medium)] bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] transition-all">
+                  <button type="button" onClick={handleAlertClick} className="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-card)] text-[var(--text-xs)] font-[var(--weight-medium)] bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] transition-all">
                     <BellRing className="w-3.5 h-3.5 text-[var(--text-muted)]" />
                     <span>Price Alert</span>
                   </button>
