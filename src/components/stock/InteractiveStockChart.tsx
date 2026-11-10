@@ -480,8 +480,8 @@ export function InteractiveStockChart({
     });
   }, [visibleCandles, chartWidth, chartHeight, minPrice, priceRange, maxVolume, padding]);
 
-  // Resample visible candles to N uniformly spaced Y coordinates for liquid curve morphing
-  const SAMPLE_POINTS = 100;
+  // Resample visible candles to 360 uniformly spaced control points for liquid native curve morphing
+  const SAMPLE_POINTS = 360;
   const targetYPoints = useMemo(() => {
     if (!visibleCandles || visibleCandles.length === 0) return [];
     const len = visibleCandles.length;
@@ -551,27 +551,10 @@ export function InteractiveStockChart({
     }
   }, [viewWindow, isPanning]);
 
-  // Construct smooth SVG paths:
-  // - When full view (timeframe view): uses normalized 100 control points so SVG 'd' transitions natively across timeframes!
-  // - When zoomed in (scroll wheel / pan): uses exact points for 100% precision with 0ms lag!
+  // Construct smooth SVG path with uniform 360 control points so SVG 'd' transitions natively across timeframes!
   const linePathD = useMemo(() => {
-    if (viewWindow !== null) {
-      // Zoomed in: exact points directly
-      if (points.length < 2) return "";
-      return points.reduce((acc, pt, idx, arr) => {
-        if (idx === 0) return `M ${pt.x.toFixed(1)},${pt.y.toFixed(1)}`;
-        const prev = arr[idx - 1];
-        const cp1x = prev.x + (pt.x - prev.x) / 2;
-        const cp1y = prev.y;
-        const cp2x = prev.x + (pt.x - prev.x) / 2;
-        const cp2y = pt.y;
-        return `${acc} C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${pt.x.toFixed(1)},${pt.y.toFixed(1)}`;
-      }, "");
-    }
-
-    // Full range: 100 uniformly spaced control points for seamless native curve morphing
     if (!targetYPoints || targetYPoints.length < 2) return "";
-    const stepX = chartWidth / (targetYPoints.length - 1);
+    const stepX = chartWidth / (SAMPLE_POINTS - 1);
     return targetYPoints.reduce((acc, y, idx) => {
       const x = padding.left + idx * stepX;
       if (idx === 0) return `M ${x.toFixed(1)},${y.toFixed(1)}`;
@@ -583,7 +566,7 @@ export function InteractiveStockChart({
       const cp2y = y;
       return `${acc} C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${x.toFixed(1)},${y.toFixed(1)}`;
     }, "");
-  }, [viewWindow, points, targetYPoints, chartWidth, padding.left]);
+  }, [targetYPoints, chartWidth, padding.left]);
 
   const areaPathD = useMemo(() => {
     if (!linePathD) return "";
@@ -683,12 +666,14 @@ export function InteractiveStockChart({
       return;
     }
 
-    if (!containerRef.current || points.length === 0) return;
+    if (!containerRef.current || (!targetYPoints.length && points.length === 0)) return;
     const rect = containerRef.current.getBoundingClientRect();
     const mouseX = e.clientX - rect.left - padding.left;
     const boundedX = Math.max(0, Math.min(chartWidth, mouseX));
     const ratio = boundedX / chartWidth;
-    const index = Math.round(ratio * (points.length - 1));
+    const index = isComparing && comparisonData
+      ? Math.round(ratio * (comparisonData.baseCoords.length - 1))
+      : Math.round(ratio * (SAMPLE_POINTS - 1));
     setHoverIndex(index);
   };
 
@@ -725,7 +710,29 @@ export function InteractiveStockChart({
     return `${fMonth} ${first.getDate()} – ${lMonth} ${last.getDate()}, ${year}`;
   }, [candles, currentRange]);
 
-  const activePoint = hoverIndex !== null && points[hoverIndex] ? points[hoverIndex] : null;
+  const activePoint = useMemo(() => {
+    if (hoverIndex === null || !visibleCandles || visibleCandles.length === 0) return null;
+    if (isComparing) {
+      return points[hoverIndex] || null;
+    }
+    const sampleIdx = Math.min(SAMPLE_POINTS - 1, Math.max(0, hoverIndex));
+    const ratio = sampleIdx / (SAMPLE_POINTS - 1);
+    const cIdx = Math.min(visibleCandles.length - 1, Math.max(0, Math.round(ratio * (visibleCandles.length - 1))));
+    const candle = visibleCandles[cIdx];
+    const x = padding.left + ratio * chartWidth;
+    const y = targetYPoints[sampleIdx] ?? (padding.top + chartHeight - ((candle.close - minPrice) / (priceRange || 1)) * chartHeight);
+    return {
+      x,
+      y,
+      yOpen: padding.top + chartHeight - ((candle.open - minPrice) / (priceRange || 1)) * chartHeight,
+      yHigh: padding.top + chartHeight - ((candle.high - minPrice) / (priceRange || 1)) * chartHeight,
+      yLow: padding.top + chartHeight - ((candle.low - minPrice) / (priceRange || 1)) * chartHeight,
+      volY: 0,
+      volHeight: 0,
+      candle,
+      index: cIdx,
+    };
+  }, [hoverIndex, visibleCandles, isComparing, points, padding.left, padding.top, chartWidth, chartHeight, targetYPoints, minPrice, priceRange]);
 
   // Values for Comparison Hover Synchronization
   const activeCompHover = useMemo(() => {
@@ -1417,14 +1424,6 @@ export function InteractiveStockChart({
                   strokeWidth={1}
                   strokeDasharray="2 2"
                   opacity={0.7}
-                />
-                <circle
-                  cx={activePoint.x}
-                  cy={activePoint.y}
-                  r={4}
-                  fill="#ffffff"
-                  stroke={isPositive ? "var(--positive)" : "var(--negative)"}
-                  strokeWidth={2}
                 />
                 <rect
                   x={padding.left + chartWidth + 2}

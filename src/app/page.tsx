@@ -17,8 +17,10 @@ import { PredictionsView } from "@/components/views/PredictionsView";
 import { WatchlistView } from "@/components/views/WatchlistView";
 import { PageContainer, TwoColumnLayout } from "@/components/ui/layout";
 import { AssetQuote, NewsItem, MarketSentiment, DashboardTab, AssetCategory } from "@/lib/types";
+import { useApp } from "@/context/AppContext";
 
 export default function Home() {
+  const { savedSymbols } = useApp();
   const [region, setRegion] = useState<"IN" | "US">("IN");
   const [activeCategory, setActiveCategory] = useState<AssetCategory>("IN");
   const [activeTab, setActiveTab] = useState<DashboardTab>("Markets");
@@ -114,11 +116,11 @@ export default function Home() {
     }
   }, []);
 
-  // Fetch Watchlist
-  const fetchWatchlist = useCallback(async (symbols: string[]) => {
+  // Fetch Watchlist (respects user session & Cloudflare D1)
+  const fetchWatchlist = useCallback(async () => {
     setIsLoadingWatchlist(true);
     try {
-      const res = await fetch(`/api/watchlist?symbols=${symbols.join(",")}`);
+      const res = await fetch("/api/watchlist");
       const data = await res.json();
       if (data.quotes) {
         setWatchlist(data.quotes);
@@ -176,8 +178,8 @@ export default function Home() {
   }, [region, fetchNews, fetchStatus]);
 
   useEffect(() => {
-    fetchWatchlist(watchlistSymbols);
-  }, [watchlistSymbols, fetchWatchlist]);
+    fetchWatchlist();
+  }, [savedSymbols, fetchWatchlist]);
 
   // Live polling every 30 seconds - automatically paused when browser tab is inactive/hidden
   useEffect(() => {
@@ -195,7 +197,7 @@ export default function Home() {
         })
         .catch(() => null);
 
-      fetchWatchlist(watchlistSymbols);
+      fetchWatchlist();
       fetchStatus();
     };
 
@@ -213,7 +215,7 @@ export default function Home() {
       clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [region, activeCategory, watchlistSymbols, fetchWatchlist, fetchStatus]);
+  }, [region, activeCategory, savedSymbols, fetchWatchlist, fetchStatus]);
 
   // Synchronize tab state with URL search param and browser Back/Forward history
   const handleTabChange = useCallback((tab: DashboardTab) => {
@@ -319,7 +321,7 @@ export default function Home() {
                   <WatchlistWidget
                     items={watchlist}
                     isLoading={isLoadingWatchlist}
-                    onManageWatchlist={() => setIsSearchOpen(true)}
+                    onNavigateToWatchlist={() => handleTabChange("Watchlist")}
                   />
 
                   <PredictionWidget />

@@ -446,28 +446,33 @@ export async function getStockChart(
   symbol: string,
   range: TimeRange = "1D"
 ): Promise<{ candles: CandlePoint[]; previousClose: number }> {
-  const ttl = ["1D", "5D"].includes(range) ? 60 : 300;
+  const ttl = range === "1D" ? 30 : range === "5D" ? 60 : range === "1M" ? 300 : 900;
 
   return serverCache.getOrSet(`chart-${symbol}-${range}`, ttl, async () => {
     try {
-      let interval: "2m" | "5m" | "15m" | "1h" | "1d" | "1wk" | "1mo" = "5m";
+      let interval: "1m" | "2m" | "5m" | "15m" | "1h" | "1d" | "1wk" | "1mo" = "1m";
       let period1: Date;
       const now = Date.now();
 
       switch (range) {
         case "1D":
-          interval = "5m";
-          // Query 5 days back so weekends and bank holidays resolve the latest active session
-          period1 = new Date(now - 5 * 24 * 60 * 60 * 1000);
+          // High-fidelity 1-minute intraday resolution
+          interval = "1m";
+          {
+            const day = new Date(now).getUTCDay();
+            const lookbackDays = day === 0 || day === 1 || day === 6 ? 5 : 2;
+            period1 = new Date(now - lookbackDays * 24 * 60 * 60 * 1000);
+          }
           break;
         case "5D":
-          interval = "15m";
-          // Query 8 days back to guarantee covering 5 trading days across weekends
+          // 5-minute resolution across the 5-day week
+          interval = "5m";
           period1 = new Date(now - 8 * 24 * 60 * 60 * 1000);
           break;
         case "1M":
-          interval = "1d";
-          period1 = new Date(now - 30 * 24 * 60 * 60 * 1000);
+          // 1-hour resolution capturing intraday swings over the past month
+          interval = "1h";
+          period1 = new Date(now - 32 * 24 * 60 * 60 * 1000);
           break;
         case "6M":
           interval = "1d";
@@ -487,7 +492,8 @@ export async function getStockChart(
           break;
         case "MAX":
         default:
-          interval = "1mo";
+          // 1-week resolution for complete historical timeline
+          interval = "1wk";
           period1 = new Date(now - 25 * 365 * 24 * 60 * 60 * 1000);
           break;
       }
@@ -544,6 +550,34 @@ export async function getStockChart(
           close: q.close ?? 0,
           volume: q.volume ?? 0,
         }));
+
+      // Append or update with current real-time market price so the curve extends directly to the present moment
+      const regularMarketPrice = result?.meta?.regularMarketPrice;
+      const regularMarketTime = result?.meta?.regularMarketTime
+        ? new Date(result.meta.regularMarketTime).getTime()
+        : null;
+
+      if (regularMarketPrice !== undefined && regularMarketPrice !== null && !isNaN(regularMarketPrice)) {
+        if (candles.length > 0) {
+          const lastCandle = candles[candles.length - 1];
+          const currentTime = regularMarketTime && regularMarketTime > lastCandle.timestamp ? regularMarketTime : now;
+          const minDeltaMs = range === "1D" ? 60000 : range === "5D" ? 300000 : range === "1M" ? 3600000 : 86400000;
+
+          if (currentTime - lastCandle.timestamp >= minDeltaMs) {
+            candles.push({
+              date: new Date(currentTime).toISOString(),
+              timestamp: currentTime,
+              open: regularMarketPrice,
+              high: Math.max(regularMarketPrice, lastCandle.close),
+              low: Math.min(regularMarketPrice, lastCandle.close),
+              close: regularMarketPrice,
+              volume: 0,
+            });
+          } else {
+            lastCandle.close = regularMarketPrice;
+          }
+        }
+      }
 
       return { candles, previousClose };
     } catch (error) {
