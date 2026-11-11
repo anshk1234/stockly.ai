@@ -247,22 +247,19 @@ export default function StockDetailPage({
                         </div>
                       </div>
                       <Skeleton className="w-full h-[320px] rounded-lg" />
-                    </Card>
 
-                    {/* Key Stats Card Skeleton */}
-                    <div>
-                      <Skeleton className="h-4 w-28 mb-2.5" />
-                      <Card className="p-[18px]">
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-4 gap-x-5">
-                          {[...Array(8)].map((_, i) => (
-                            <div key={i} className="flex flex-col gap-1.5">
+                      {/* Key Stats Attached Skeleton (Perplexity Finance Style) */}
+                      <div className="pt-3 border-t border-[var(--border)] -mx-[16px] -mb-[16px] px-[16px] pb-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-3 gap-x-5">
+                          {[...Array(9)].map((_, i) => (
+                            <div key={i} className="flex items-center justify-between py-1">
                               <Skeleton className="h-3 w-16" />
-                              <Skeleton className="h-4 w-24" />
+                              <Skeleton className="h-3 w-20" />
                             </div>
                           ))}
                         </div>
-                      </Card>
-                    </div>
+                      </div>
+                    </Card>
                   </div>
                 }
                 sidebar={
@@ -383,9 +380,8 @@ export default function StockDetailPage({
                       currentRange={currentRange}
                       onRangeChange={handleRangeChange}
                       isLoading={isLoadingChart}
+                      footer={<KeyStatsGrid stock={stock} attached />}
                     />
-
-                    <KeyStatsGrid stock={stock} />
                   </div>
                 }
                 sidebar={<CompanyProfileWidget stock={stock} />}
