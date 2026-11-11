@@ -19,7 +19,7 @@ export function AlertToast() {
   if (!latestTriggeredAlert) return null;
 
   return (
-    <div className="fixed top-16 right-6 z-50 animate-in slide-in-from-top-4 fade-in duration-300 max-w-[360px] w-full">
+    <div className="fixed top-16 right-6 z-[80] animate-in slide-in-from-top-4 fade-in duration-300 max-w-[360px] w-full">
       <div className="p-3.5 rounded-2xl bg-[#141518]/95 backdrop-blur-xl border border-rose-500/30 shadow-[0_8px_32px_rgba(244,63,94,0.18)] flex items-start gap-3 text-left">
         <div className="w-8 h-8 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0 mt-0.5">
           <Bell className="w-4 h-4 animate-bounce" />

@@ -61,6 +61,7 @@ export function NotificationDrawer() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => {
+                closeNotificationDrawer();
                 if (isGuest) {
                   openAuthModal("alert");
                 } else {
@@ -220,7 +221,14 @@ export function NotificationDrawer() {
                   Set a price target or percentage move alert on any asset to track it automatically.
                 </p>
                 <button
-                  onClick={() => openAlertModal()}
+                  onClick={() => {
+                    closeNotificationDrawer();
+                    if (isGuest) {
+                      openAuthModal("alert");
+                    } else {
+                      openAlertModal();
+                    }
+                  }}
                   className="px-4 py-2 rounded-xl bg-white hover:bg-neutral-100 text-neutral-900 text-[12px] font-medium transition-all"
                 >
                   Create Target

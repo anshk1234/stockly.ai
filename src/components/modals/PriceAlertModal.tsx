@@ -169,7 +169,7 @@ export function PriceAlertModal() {
   if (!isAlertModalOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-150">
       <div className="relative w-full max-w-[480px] rounded-2xl bg-[#141518] border border-white/10 shadow-2xl p-6 text-left animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-white/5">
