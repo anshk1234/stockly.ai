@@ -16,6 +16,7 @@
 
 <p align="center">
   <a href="https://stocklyai.vercel.app/"><strong>Live Terminal</strong></a> ·
+  <a href="#-terminal-interface">Interface</a> ·
   <a href="#-how-it-works">Architecture</a> ·
   <a href="#-core-features">Features</a> ·
   <a href="#-quick-start">Quick Start</a> ·
@@ -47,6 +48,35 @@ Financial tracking today is fractured between two extremes:
 - **Sub-35ms In-Memory Caching**: High-throughput TTL caching layer shields downstream market APIs and guarantees near-instant responses.
 - **GPU-Accelerated 360-Point Morphing Charts**: Interactive SVG line curves standardizing 360 uniform control points across all periods (1D, 5D, 1M, 6M, 1Y, 5Y) for silky smooth CSS morph transitions.
 - **100% Free & Open-Source**: Free forever, no paywalls, no tracking scripts, and fully transparent under the Apache-2.0 license.
+
+---
+
+## 🖥️ Terminal Interface
+
+<table width="100%">
+  <tr align="center">
+    <th width="50%">Live Market Dashboard</th>
+    <th width="50%">Interactive Pro Charting & Key Statistics</th>
+  </tr>
+  <tr>
+    <td><a href="https://stocklyai.vercel.app"><img src="public/screenshots/terminal-dashboard.jpg" alt="Live Market Dashboard" width="100%" /></a></td>
+    <td><a href="https://stocklyai.vercel.app"><img src="public/screenshots/pro-charting.jpg" alt="Interactive Pro Charting and Key Stats" width="100%" /></a></td>
+  </tr>
+  <tr align="center">
+    <th>Top 500 Interactive Sector Heatmap</th>
+    <th>Cloudflare D1 Multi-Asset Watchlist</th>
+  </tr>
+  <tr>
+    <td><a href="https://stocklyai.vercel.app"><img src="public/screenshots/market-heatmap.jpg" alt="Top 500 Market Heatmap" width="100%" /></a></td>
+    <td><a href="https://stocklyai.vercel.app"><img src="public/screenshots/watchlist-view.jpg" alt="Cloudflare D1 Watchlist View" width="100%" /></a></td>
+  </tr>
+  <tr align="center">
+    <th colspan="2">Prediction Markets Terminal (Polymarket Integration)</th>
+  </tr>
+  <tr>
+    <td colspan="2"><a href="https://stocklyai.vercel.app"><img src="public/screenshots/prediction-markets.jpg" alt="Prediction Markets Terminal" width="100%" /></a></td>
+  </tr>
+</table>
 
 ---
 
