@@ -180,7 +180,9 @@ export function InteractiveStockChart({
 
   // Ref to always access latest compareAssets inside timeframe changes
   const compareAssetsRef = useRef(compareAssets);
-  compareAssetsRef.current = compareAssets;
+  useEffect(() => {
+    compareAssetsRef.current = compareAssets;
+  }, [compareAssets]);
 
   // When timeframe range changes, sync-refresh compare assets' charts
   useEffect(() => {
@@ -202,7 +204,9 @@ export function InteractiveStockChart({
 
   // Auto-initialize comparison mode when defaultCompareSymbols are provided (e.g. in WatchlistView)
   const currentRangeRef = useRef(currentRange);
-  currentRangeRef.current = currentRange;
+  useEffect(() => {
+    currentRangeRef.current = currentRange;
+  }, [currentRange]);
 
   const defaultCompareKey = useMemo(() => {
     const filtered = (defaultCompareSymbols || [])

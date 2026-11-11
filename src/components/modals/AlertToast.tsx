@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { Bell, X, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { Bell, X, ArrowUpRight } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { formatPrice } from "@/lib/utils";
 
