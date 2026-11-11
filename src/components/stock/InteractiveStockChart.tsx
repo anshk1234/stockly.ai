@@ -38,6 +38,7 @@ interface InteractiveStockChartProps {
   onRangeChange: (range: TimeRange) => void;
   isLoading: boolean;
   defaultCompareSymbols?: string[];
+  footer?: React.ReactNode;
 }
 
 interface CompareAsset {
@@ -88,6 +89,7 @@ export function InteractiveStockChart({
   onRangeChange,
   isLoading,
   defaultCompareSymbols,
+  footer,
 }: InteractiveStockChartProps) {
   const [chartType, setChartType] = useState<"area" | "candle">("area");
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
@@ -1535,6 +1537,23 @@ export function InteractiveStockChart({
                 >
                   {activePoint.candle.close.toFixed(2)}
                 </text>
+
+                {/* Point Cursor Indicator (Perplexity / TradingView Circular Pointer) */}
+                <circle
+                  cx={activePoint.x}
+                  cy={activePoint.y}
+                  r={7}
+                  fill={isPositive ? "var(--positive)" : "var(--negative)"}
+                  opacity={0.25}
+                />
+                <circle
+                  cx={activePoint.x}
+                  cy={activePoint.y}
+                  r={3.8}
+                  fill={isPositive ? "var(--positive)" : "var(--negative)"}
+                  stroke="#ffffff"
+                  strokeWidth={2}
+                />
               </g>
             )}
           </svg>
@@ -1733,6 +1752,13 @@ export function InteractiveStockChart({
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Attached Footer / Key Statistics (Perplexity Finance Style) */}
+        {footer && (
+          <div className="mt-3.5 pt-0 border-t border-[var(--border)] -mx-[16px] -mb-[16px]">
+            {footer}
           </div>
         )}
       </Card>

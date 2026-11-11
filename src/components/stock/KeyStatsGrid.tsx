@@ -7,9 +7,10 @@ import { Card, SectionTitle } from "@/components/ui/layout";
 
 interface KeyStatsGridProps {
   stock: DetailedStockQuote;
+  attached?: boolean;
 }
 
-export function KeyStatsGrid({ stock }: KeyStatsGridProps) {
+export function KeyStatsGrid({ stock, attached = true }: KeyStatsGridProps) {
   const currencySymbol = stock.currency === "INR" ? "₹" : "$";
   const isCrypto = stock.assetClass === "CRYPTOCURRENCY" || stock.symbol.endsWith("-USD");
   const isIndex = stock.assetClass === "INDEX" || stock.symbol.startsWith("^");
@@ -31,7 +32,7 @@ export function KeyStatsGrid({ stock }: KeyStatsGridProps) {
         label: "Circulating Supply",
         value: stock.circulatingSupply
           ? `${formatCompactNumber(stock.circulatingSupply)} ${coinCode}`
-          : "N/A",
+          : "—",
       },
       {
         label: "Max Supply",
@@ -44,26 +45,30 @@ export function KeyStatsGrid({ stock }: KeyStatsGridProps) {
         value:
           stock.dayLow && stock.dayHigh
             ? `${currencySymbol}${stock.dayLow.toLocaleString(undefined, { maximumFractionDigits: 2 })} - ${currencySymbol}${stock.dayHigh.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
-            : "N/A",
+            : "—",
       },
       {
         label: "52W Range",
         value:
           stock.fiftyTwoWeekLow && stock.fiftyTwoWeekHigh
             ? `${currencySymbol}${stock.fiftyTwoWeekLow.toLocaleString(undefined, { maximumFractionDigits: 2 })} - ${currencySymbol}${stock.fiftyTwoWeekHigh.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
-            : "N/A",
+            : "—",
       },
       {
         label: "50-Day Moving Avg",
         value: stock.fiftyDayAverage
           ? `${currencySymbol}${stock.fiftyDayAverage.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
-          : "N/A",
+          : "—",
       },
       {
         label: "200-Day Moving Avg",
         value: stock.twoHundredDayAverage
           ? `${currencySymbol}${stock.twoHundredDayAverage.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
-          : "N/A",
+          : "—",
+      },
+      {
+        label: "Market State",
+        value: stock.marketState || "24/7 Live",
       },
     ];
   } else if (isIndex) {
@@ -73,14 +78,14 @@ export function KeyStatsGrid({ stock }: KeyStatsGridProps) {
         value:
           stock.dayLow && stock.dayHigh
             ? `${currencySymbol}${stock.dayLow.toLocaleString(undefined, { maximumFractionDigits: 2 })} - ${currencySymbol}${stock.dayHigh.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
-            : "N/A",
+            : "—",
       },
       {
         label: "52W Range",
         value:
           stock.fiftyTwoWeekLow && stock.fiftyTwoWeekHigh
             ? `${currencySymbol}${stock.fiftyTwoWeekLow.toLocaleString(undefined, { maximumFractionDigits: 2 })} - ${currencySymbol}${stock.fiftyTwoWeekHigh.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
-            : "N/A",
+            : "—",
       },
       {
         label: "Previous Close",
@@ -90,17 +95,17 @@ export function KeyStatsGrid({ stock }: KeyStatsGridProps) {
         label: "50-Day Moving Avg",
         value: stock.fiftyDayAverage
           ? `${currencySymbol}${stock.fiftyDayAverage.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
-          : "N/A",
+          : "—",
       },
       {
         label: "200-Day Moving Avg",
         value: stock.twoHundredDayAverage
           ? `${currencySymbol}${stock.twoHundredDayAverage.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
-          : "N/A",
+          : "—",
       },
       {
         label: "Constituents",
-        value: stock.constituentsCount ? `${stock.constituentsCount} Companies` : "Blue-Chips",
+        value: stock.constituentsCount ? `${stock.constituentsCount} Companies` : "50 Large-Cap",
       },
       {
         label: "Index Exchange",
@@ -110,49 +115,81 @@ export function KeyStatsGrid({ stock }: KeyStatsGridProps) {
         label: "Market Currency",
         value: `${stock.currency || "INR"} (${currencySymbol})`,
       },
+      {
+        label: "Market State",
+        value: stock.marketState || "Regular",
+      },
     ];
   } else {
-    // Standard Equities
+    // Standard Equities (matching Perplexity Finance layout from User Image 3)
+    const openPrice = stock.price && stock.change !== undefined ? stock.price - stock.change : undefined;
+
     stats = [
       {
         label: "Forward P/E",
-        value: stock.forwardPE ? stock.forwardPE.toFixed(2) : "N/A",
+        value: stock.forwardPE ? stock.forwardPE.toFixed(2) : "—",
       },
       {
         label: "Market Cap",
         value: formatCompactNumber(stock.marketCap, currencySymbol),
       },
       {
+        label: "Open",
+        value: openPrice ? `${currencySymbol}${openPrice.toFixed(2)}` : "—",
+      },
+      {
         label: "Trailing P/E",
-        value: stock.trailingPE ? stock.trailingPE.toFixed(2) : "N/A",
+        value: stock.trailingPE ? stock.trailingPE.toFixed(2) : "—",
       },
       {
         label: "Day Range",
         value:
           stock.dayLow && stock.dayHigh
             ? `${currencySymbol}${stock.dayLow.toFixed(2)} - ${currencySymbol}${stock.dayHigh.toFixed(2)}`
-            : "N/A",
+            : "—",
       },
       {
         label: "Dividend Yield",
-        value: stock.dividendYield ? formatPercent(stock.dividendYield * 100) : "0.00%",
+        value: stock.dividendYield ? formatPercent(stock.dividendYield * 100) : "—",
       },
       {
         label: "52W Range",
         value:
           stock.fiftyTwoWeekLow && stock.fiftyTwoWeekHigh
             ? `${currencySymbol}${stock.fiftyTwoWeekLow.toFixed(2)} - ${currencySymbol}${stock.fiftyTwoWeekHigh.toFixed(2)}`
-            : "N/A",
+            : "—",
       },
       {
         label: "EPS",
-        value: stock.eps ? `${currencySymbol}${stock.eps.toFixed(2)}` : "N/A",
+        value: stock.eps ? `${currencySymbol}${stock.eps.toFixed(2)}` : "—",
       },
       {
         label: "Volume",
         value: formatCompactNumber(stock.volume),
       },
     ];
+  }
+
+  if (attached) {
+    return (
+      <div className="w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+          {stats.map((stat, i) => (
+            <div
+              key={i}
+              className="flex items-center justify-between py-2.5 px-4 sm:px-5 hover:bg-white/[0.02] transition-colors border-b border-white/5 last:border-b-0"
+            >
+              <span className="text-[12px] text-neutral-400 font-normal">
+                {stat.label}
+              </span>
+              <span className="text-[13px] font-medium text-white tabular-nums text-right ml-2">
+                {stat.value}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (
