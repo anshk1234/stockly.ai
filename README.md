@@ -51,7 +51,7 @@ Financial tracking today is fractured between two extremes:
 
 ---
 
-## 🖥️ Terminal Interface
+## Terminal Interface
 
 <table width="100%">
   <tr align="center">
@@ -64,7 +64,7 @@ Financial tracking today is fractured between two extremes:
   </tr>
   <tr align="center">
     <th>Top 500 Interactive Sector Heatmap</th>
-    <th>Cloudflare D1 Multi-Asset Watchlist</th>
+    <th> Multi-Asset Watchlist</th>
   </tr>
   <tr>
     <td><a href="https://stocklyai.vercel.app"><img src="public/screenshots/market-heatmap.jpg" alt="Top 500 Market Heatmap" width="100%" /></a></td>
