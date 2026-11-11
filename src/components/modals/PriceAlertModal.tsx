@@ -13,7 +13,7 @@ interface SearchSuggestion {
 }
 
 export function PriceAlertModal() {
-  const { isAlertModalOpen, alertInitialAsset, closeAlertModal, isGuest, openAuthModal } = useApp();
+  const { isAlertModalOpen, alertInitialAsset, closeAlertModal, isGuest, openAuthModal, refreshAlerts } = useApp();
 
   const [symbol, setSymbol] = useState("NVDA");
   const [assetName, setAssetName] = useState("NVIDIA Corporation");
@@ -158,6 +158,7 @@ export function PriceAlertModal() {
           additionalInstructions: additionalInstructions || undefined,
         }),
       });
+      await refreshAlerts();
     } catch (err) {
       console.error("Failed to save price alert to D1:", err);
     }

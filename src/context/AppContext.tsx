@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { AssetQuote } from "@/lib/types";
+import { AssetQuote, EnrichedAlert } from "@/lib/types";
 
 export interface UserProfile {
   id: string;
@@ -26,6 +26,18 @@ interface AppContextType {
   alertInitialAsset?: AssetQuote | { symbol: string; name: string; price: number; currency?: string } | null;
   openAlertModal: (asset?: AssetQuote | { symbol: string; name: string; price: number; currency?: string } | null) => void;
   closeAlertModal: () => void;
+  // Alert Notifications & Drawer State
+  alerts: EnrichedAlert[];
+  triggeredAlertsCount: number;
+  activeAlertsCount: number;
+  refreshAlerts: () => Promise<void>;
+  dismissAlert: (id: string) => Promise<void>;
+  deleteAlert: (id: string) => Promise<void>;
+  isNotificationDrawerOpen: boolean;
+  openNotificationDrawer: () => void;
+  closeNotificationDrawer: () => void;
+  latestTriggeredAlert: EnrichedAlert | null;
+  dismissToast: () => void;
   // Manage Watchlist Modal & State
   savedSymbols: string[];
   isWatchlistSaved: (symbol: string) => boolean;
@@ -48,6 +60,80 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [alertInitialAsset, setAlertInitialAsset] = useState<
     AssetQuote | { symbol: string; name: string; price: number; currency?: string } | null
   >(null);
+
+  // Price Alerts & Notification State
+  const [alerts, setAlerts] = useState<EnrichedAlert[]>([]);
+  const [triggeredAlertsCount, setTriggeredAlertsCount] = useState(0);
+  const [activeAlertsCount, setActiveAlertsCount] = useState(0);
+  const [isNotificationDrawerOpen, setIsNotificationDrawerOpen] = useState(false);
+  const [latestTriggeredAlert, setLatestTriggeredAlert] = useState<EnrichedAlert | null>(null);
+
+  const refreshAlerts = async () => {
+    try {
+      const res = await fetch("/api/alerts");
+      if (res.ok) {
+        const data = await res.json();
+        const incomingAlerts: EnrichedAlert[] = data.alerts || [];
+        setAlerts(incomingAlerts);
+        setTriggeredAlertsCount(data.triggeredCount || 0);
+        setActiveAlertsCount(data.activeCount || 0);
+
+        // Detect newly triggered alerts in the last 2 minutes
+        const newlyTriggered = incomingAlerts.find(
+          (a) => a.status === "TRIGGERED" && a.triggeredAt && Date.now() - a.triggeredAt < 120000
+        );
+        if (newlyTriggered) {
+          setLatestTriggeredAlert(newlyTriggered);
+        }
+      }
+    } catch (err) {
+      console.error("[AppContext] Failed to refresh alerts:", err);
+    }
+  };
+
+  const dismissAlert = async (id: string) => {
+    try {
+      await fetch("/api/alerts", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, action: "DISMISS" }),
+      });
+      setAlerts((prev) => prev.map((a) => (a.id === id ? { ...a, status: "DISMISSED" } : a)));
+      setTriggeredAlertsCount((c) => Math.max(0, c - 1));
+      if (latestTriggeredAlert?.id === id) setLatestTriggeredAlert(null);
+    } catch (err) {
+      console.error("[AppContext] Failed to dismiss alert:", err);
+    }
+  };
+
+  const deleteAlert = async (id: string) => {
+    try {
+      await fetch(`/api/alerts?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+      setAlerts((prev) => prev.filter((a) => a.id !== id));
+      setTriggeredAlertsCount((c) => Math.max(0, c - 1));
+      setActiveAlertsCount((c) => Math.max(0, c - 1));
+      if (latestTriggeredAlert?.id === id) setLatestTriggeredAlert(null);
+    } catch (err) {
+      console.error("[AppContext] Failed to delete alert:", err);
+    }
+  };
+
+  const openNotificationDrawer = () => setIsNotificationDrawerOpen(true);
+  const closeNotificationDrawer = () => setIsNotificationDrawerOpen(false);
+  const dismissToast = () => setLatestTriggeredAlert(null);
+
+  // Poll alerts every 45s when user is logged in
+  useEffect(() => {
+    if (!user) {
+      setAlerts([]);
+      setTriggeredAlertsCount(0);
+      setActiveAlertsCount(0);
+      return;
+    }
+    refreshAlerts();
+    const interval = setInterval(refreshAlerts, 45000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   // Check 30-day session on mount
   useEffect(() => {
@@ -220,6 +306,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
         alertInitialAsset,
         openAlertModal,
         closeAlertModal,
+        alerts,
+        triggeredAlertsCount,
+        activeAlertsCount,
+        refreshAlerts,
+        dismissAlert,
+        deleteAlert,
+        isNotificationDrawerOpen,
+        openNotificationDrawer,
+        closeNotificationDrawer,
+        latestTriggeredAlert,
+        dismissToast,
         savedSymbols,
         isWatchlistSaved,
         toggleWatchlist,

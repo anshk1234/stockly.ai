@@ -5,6 +5,8 @@ import { AppProvider } from "@/context/AppContext";
 import { AuthModal } from "@/components/modals/AuthModal";
 import { PriceAlertModal } from "@/components/modals/PriceAlertModal";
 import { ManageWatchlistModal } from "@/components/modals/ManageWatchlistModal";
+import { NotificationDrawer } from "@/components/modals/NotificationDrawer";
+import { AlertToast } from "@/components/modals/AlertToast";
 
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
@@ -13,6 +15,8 @@ export function AppProviders({ children }: { children: ReactNode }) {
       <AuthModal />
       <PriceAlertModal />
       <ManageWatchlistModal />
+      <NotificationDrawer />
+      <AlertToast />
     </AppProvider>
   );
 }

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { getWatchlist } from "@/lib/yahoo";
 import { verifySessionToken, SESSION_COOKIE_NAME } from "@/lib/auth";
 import { getUserWatchlist, addToWatchlist, removeFromWatchlist } from "@/lib/user";
+import { serverCache } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,11 @@ export async function GET(req: NextRequest) {
 
   if (session) {
     try {
-      const records = await getUserWatchlist(session.id);
+      // Cache user's watchlist symbols from D1 for 24h, invalidated automatically on POST/DELETE
+      const cacheKey = `user-d1-watchlist-${session.id}`;
+      const records = await serverCache.getOrSet(cacheKey, 86400, async () => {
+        return getUserWatchlist(session.id);
+      });
       userWatchlistSymbols = records.map((r) => r.symbol);
     } catch (err) {
       console.error("[Watchlist] Failed to fetch user watchlist from D1:", err);
@@ -71,6 +76,9 @@ export async function POST(req: NextRequest) {
     }
 
     await addToWatchlist(session.id, symbol.toUpperCase(), name || symbol, assetType || "STOCK");
+    // Invalidate cached D1 watchlist symbols immediately
+    serverCache.clear(`user-d1-watchlist-${session.id}`);
+
     return NextResponse.json({ success: true, symbol: symbol.toUpperCase() });
   } catch (err) {
     console.error("[Watchlist] Failed to add to D1:", err);
@@ -96,6 +104,9 @@ export async function DELETE(req: NextRequest) {
     }
 
     await removeFromWatchlist(session.id, symbol.toUpperCase());
+    // Invalidate cached D1 watchlist symbols immediately
+    serverCache.clear(`user-d1-watchlist-${session.id}`);
+
     return NextResponse.json({ success: true, symbol: symbol.toUpperCase() });
   } catch (err) {
     console.error("[Watchlist] Failed to remove from D1:", err);

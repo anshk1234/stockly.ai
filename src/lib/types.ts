@@ -155,3 +155,22 @@ export interface DiscoverStory {
   sourceDomains: string[];
 }
 
+export interface EnrichedAlert {
+  id: string;
+  symbol: string;
+  name: string;
+  criteria: "TARGET_PRICE" | "MOVEMENT_AMOUNT";
+  targetPrice?: number;
+  movementPct?: number;
+  channels: string[];
+  status: "ACTIVE" | "TRIGGERED" | "DISMISSED";
+  triggeredAt?: number | null;
+  createdAt: number;
+  currentPrice: number;
+  change: number;
+  changePercent: number;
+  currency: string;
+  distancePercent: number;
+  additionalInstructions?: string;
+}
+
