@@ -37,6 +37,7 @@ interface InteractiveStockChartProps {
   currentRange: TimeRange;
   onRangeChange: (range: TimeRange) => void;
   isLoading: boolean;
+  defaultCompareSymbols?: string[];
 }
 
 interface CompareAsset {
@@ -86,6 +87,7 @@ export function InteractiveStockChart({
   currentRange,
   onRangeChange,
   isLoading,
+  defaultCompareSymbols,
 }: InteractiveStockChartProps) {
   const [chartType, setChartType] = useState<"area" | "candle">("area");
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
@@ -176,10 +178,16 @@ export function InteractiveStockChart({
     return () => clearTimeout(timer);
   }, [compareSearch]);
 
+  // Ref to always access latest compareAssets inside timeframe changes
+  const compareAssetsRef = useRef(compareAssets);
+  useEffect(() => {
+    compareAssetsRef.current = compareAssets;
+  }, [compareAssets]);
+
   // When timeframe range changes, sync-refresh compare assets' charts
   useEffect(() => {
-    if (compareAssets.length === 0) return;
-    compareAssets.forEach(async (asset) => {
+    if (compareAssetsRef.current.length === 0) return;
+    compareAssetsRef.current.forEach(async (asset) => {
       try {
         const res = await fetch(`/api/stock/${encodeURIComponent(asset.symbol)}/chart?range=${currentRange}`);
         const data = await res.json();
@@ -193,6 +201,88 @@ export function InteractiveStockChart({
       }
     });
   }, [currentRange]);
+
+  // Auto-initialize comparison mode when defaultCompareSymbols are provided (e.g. in WatchlistView)
+  const currentRangeRef = useRef(currentRange);
+  useEffect(() => {
+    currentRangeRef.current = currentRange;
+  }, [currentRange]);
+
+  const defaultCompareKey = useMemo(() => {
+    const filtered = (defaultCompareSymbols || [])
+      .map((s) => s.toUpperCase())
+      .filter((s) => s !== symbol.toUpperCase())
+      .sort()
+      .join(",");
+    return filtered ? `${symbol.toUpperCase()}:${filtered}` : "";
+  }, [defaultCompareSymbols, symbol]);
+
+  const loadRequestIdRef = useRef(0);
+
+  useEffect(() => {
+    if (!defaultCompareKey) {
+      setCompareAssets([]);
+      return;
+    }
+
+    const currentRequestId = ++loadRequestIdRef.current;
+
+    async function loadDefaultComparisons() {
+      const symbolsToLoad = (defaultCompareSymbols || [])
+        .map((s) => s.toUpperCase())
+        .filter((s) => s !== symbol.toUpperCase());
+
+      if (symbolsToLoad.length === 0) {
+        setCompareAssets([]);
+        return;
+      }
+
+      try {
+        const range = currentRangeRef.current;
+        const loaded = await Promise.all(
+          symbolsToLoad.map(async (sym, index) => {
+            try {
+              const [chartRes, stockRes] = await Promise.all([
+                fetch(`/api/stock/${encodeURIComponent(sym)}/chart?range=${range}`).then((r) => r.json()),
+                fetch(`/api/stock/${encodeURIComponent(sym)}`).then((r) => r.json()).catch(() => null),
+              ]);
+
+              const fetchedCandles: CandlePoint[] = chartRes.candles || [];
+              const stock = stockRes?.stock;
+              const assignedColor = COMPARE_COLORS[index % COMPARE_COLORS.length];
+
+              const newAsset: CompareAsset = {
+                symbol: sym,
+                name: stock?.name || sym,
+                currency: stock?.currency || "USD",
+                exchange: stock?.exchange || "US",
+                price:
+                  stock?.price ??
+                  (fetchedCandles.length > 0 ? fetchedCandles[fetchedCandles.length - 1].close : 0),
+                change: stock?.change ?? 0,
+                changePercent: stock?.changePercent ?? 0,
+                candles: fetchedCandles,
+                color: assignedColor,
+              };
+              return newAsset;
+            } catch (err) {
+              console.error(`Failed to load comparison ticker ${sym}:`, err);
+              return null;
+            }
+          })
+        );
+
+        if (loadRequestIdRef.current === currentRequestId) {
+          const valid = loaded.filter((a): a is CompareAsset => a !== null && a.candles.length > 0);
+          setCompareAssets(valid);
+        }
+      } catch (err) {
+        console.error("Failed to load default comparisons:", err);
+      }
+    }
+
+    loadDefaultComparisons();
+  }, [defaultCompareKey]);
 
   // Handle adding a comparison ticker
   const handleToggleComparison = async (

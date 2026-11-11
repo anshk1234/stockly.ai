@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { BellRing, LogOut, User as UserIcon } from "lucide-react";
+import { BellRing, LogOut, Star, User as UserIcon } from "lucide-react";
 import { SearchDropdown } from "./SearchDropdown";
 import { useApp } from "@/context/AppContext";
 
@@ -12,7 +12,15 @@ interface HeaderProps {
 }
 
 export function Header({ onSelectSymbol }: HeaderProps) {
-  const { user, isGuest, openAuthModal, openAlertModal, logout } = useApp();
+  const {
+    user,
+    isGuest: _isGuest,
+    openAuthModal,
+    openAlertModal: _openAlertModal,
+    logout,
+    triggeredAlertsCount,
+    openNotificationDrawer,
+  } = useApp();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -49,13 +57,35 @@ export function Header({ onSelectSymbol }: HeaderProps) {
 
         {/* Col 3 (Right): Action Controls */}
         <div className="flex items-center justify-end gap-2 text-[var(--text-muted)] text-[12px] shrink-0">
+          <a
+            href="https://github.com/anshk1234/stockly.ai"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.09] border border-white/10 hover:border-white/20 backdrop-blur-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] hover:shadow-[0_0_16px_rgba(251,191,36,0.15)] text-neutral-200 hover:text-white transition-all duration-200 font-[var(--weight-medium)] whitespace-nowrap active:scale-[0.97] group"
+            title="Star Stockly.ai on GitHub"
+          >
+            <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 group-hover:scale-110 group-hover:rotate-12 transition-all duration-200 drop-shadow-[0_0_6px_rgba(251,191,36,0.4)]" />
+            <span>Star on GitHub</span>
+          </a>
+
           <button
             type="button"
-            onClick={() => openAlertModal()}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)] transition-colors font-[var(--weight-medium)] whitespace-nowrap"
+            onClick={openNotificationDrawer}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)] transition-colors font-[var(--weight-medium)] whitespace-nowrap relative"
+            title="Price Alerts & Monitors"
           >
-            <BellRing className="w-3.5 h-3.5" />
+            <div className="relative">
+              <BellRing className="w-3.5 h-3.5" />
+              {triggeredAlertsCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-rose-500 animate-pulse ring-1 ring-black" />
+              )}
+            </div>
             <span>Price Alert</span>
+            {triggeredAlertsCount > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-bold">
+                {triggeredAlertsCount}
+              </span>
+            )}
           </button>
 
           {/* User Profile or Sign-in */}

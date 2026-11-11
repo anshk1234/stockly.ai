@@ -91,7 +91,7 @@ export function ManageWatchlistModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-150">
       <div
         ref={modalRef}
         className="relative w-full max-w-[460px] rounded-2xl bg-[#141518] border border-white/10 shadow-2xl p-6 text-left animate-in zoom-in-95 duration-150"

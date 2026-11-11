@@ -116,13 +116,24 @@ export default function Home() {
     }
   }, []);
 
-  // Fetch Watchlist (respects user session & Cloudflare D1)
-  const fetchWatchlist = useCallback(async () => {
+  // In-memory client cache for watchlist quotes
+  const watchlistCacheRef = useRef<AssetQuote[] | null>(null);
+  const prevSavedSymbolsKeyRef = useRef<string>("");
+
+  // Fetch Watchlist (respects user session & Cloudflare D1 with client-side caching)
+  const fetchWatchlist = useCallback(async (force = false) => {
+    // If cached and not forced, reuse cache without network hit
+    if (!force && watchlistCacheRef.current) {
+      setWatchlist(watchlistCacheRef.current);
+      return;
+    }
+
     setIsLoadingWatchlist(true);
     try {
       const res = await fetch("/api/watchlist");
       const data = await res.json();
       if (data.quotes) {
+        watchlistCacheRef.current = data.quotes;
         setWatchlist(data.quotes);
       }
     } catch (err) {
@@ -178,7 +189,12 @@ export default function Home() {
   }, [region, fetchNews, fetchStatus]);
 
   useEffect(() => {
-    fetchWatchlist();
+    const currentKey = savedSymbols.slice().sort().join(",");
+    // Pull once on initial load, or re-fetch only when a ticker is added/removed
+    if (!watchlistCacheRef.current || currentKey !== prevSavedSymbolsKeyRef.current) {
+      prevSavedSymbolsKeyRef.current = currentKey;
+      fetchWatchlist(true);
+    }
   }, [savedSymbols, fetchWatchlist]);
 
   // Live polling every 30 seconds - automatically paused when browser tab is inactive/hidden
@@ -197,7 +213,6 @@ export default function Home() {
         })
         .catch(() => null);
 
-      fetchWatchlist();
       fetchStatus();
     };
 
@@ -215,7 +230,7 @@ export default function Home() {
       clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [region, activeCategory, savedSymbols, fetchWatchlist, fetchStatus]);
+  }, [region, activeCategory, fetchStatus]);
 
   // Synchronize tab state with URL search param and browser Back/Forward history
   const handleTabChange = useCallback((tab: DashboardTab) => {

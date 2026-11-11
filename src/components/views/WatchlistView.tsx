@@ -55,9 +55,21 @@ export function WatchlistView({
   const [isLoadingChart, setIsLoadingChart] = useState(false);
 
   useEffect(() => {
-    if (watchlist.length > 0 && !selectedStock) {
-      setSelectedStock(watchlist[0]);
+    if (watchlist.length > 0) {
+      if (!selectedStock || !watchlist.some((s) => s.symbol === selectedStock.symbol)) {
+        setSelectedStock(watchlist[0]);
+      }
+    } else {
+      setSelectedStock(null);
     }
+  }, [watchlist, selectedStock]);
+
+  // Symbols from the current watchlist to display in comparison mode
+  const otherWatchlistSymbols = React.useMemo(() => {
+    if (!selectedStock || watchlist.length <= 1) return [];
+    return watchlist
+      .filter((item) => item.symbol.toUpperCase() !== selectedStock.symbol.toUpperCase())
+      .map((item) => item.symbol);
   }, [watchlist, selectedStock]);
 
   const activeSymbol = selectedStock?.symbol || "MSFT";
@@ -342,6 +354,8 @@ export function WatchlistView({
         {selectedStock && (
           <InteractiveStockChart
             symbol={selectedStock.symbol}
+            name={selectedStock.name}
+            exchange={selectedStock.exchange}
             currency={selectedStock.currency}
             initialPrice={selectedStock.price}
             initialChange={selectedStock.change}
@@ -351,6 +365,7 @@ export function WatchlistView({
             currentRange={currentRange}
             onRangeChange={(r) => setCurrentRange(r)}
             isLoading={isLoadingChart}
+            defaultCompareSymbols={otherWatchlistSymbols}
           />
         )}
       </div>
