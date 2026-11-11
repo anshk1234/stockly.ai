@@ -1,0 +1,63 @@
+name: 🐛 Bug Report
+description: Report an issue or unexpected behavior in Stockly.ai
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug! Please ensure you have checked existing issues before filing a duplicate.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+      placeholder: When I click on ..., the following error occurs...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: How can maintainers reproduce the issue?
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Scroll down to '...'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+      placeholder: The price chart should update without flickering...
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or Error Logs
+      description: If applicable, add screenshots, screen recordings, or console error logs to help explain the problem.
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Operating System & Browser
+      multiple: true
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Chrome
+        - Firefox
+        - Safari
+        - Edge
+        - Mobile Browser
+    validations:
+      required: true

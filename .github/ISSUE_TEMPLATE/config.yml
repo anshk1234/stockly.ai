@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 💬 Ask a Question or Community Discussion
+    url: https://github.com/anshk1234/stockly.ai/discussions
+    about: Ask questions, share ideas, or get help with Stockly.ai
+  - name: 🛡️ Security Vulnerability Disclosure
+    url: mailto:anshkunwar3009@gmail.com
+    about: Report security issues privately following our SECURITY.md policy
