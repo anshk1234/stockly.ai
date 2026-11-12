@@ -40,7 +40,7 @@
 </p>
 
 <p align="center">
-  <a href="https://mintlify.com">
+  <a href="https://www.mintlify.com/oss-program">
     <img src="public/mossp.png" alt="Mintlify Open Source Program" width="340" style="border-radius: 12px;" />
   </a>
 </p>
