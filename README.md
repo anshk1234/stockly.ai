@@ -34,7 +34,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache--2.0-blue.svg" alt="License: Apache-2.0" height="24" /></a>
 </p>
 
-<h3 align="center">Supported By:</h3>
+<h4 align="center">Supported By:</h4>
 
 <p align="center">
   <a href="https://www.mintlify.com/oss-program">
