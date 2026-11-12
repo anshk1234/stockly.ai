@@ -34,13 +34,11 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache--2.0-blue.svg" alt="License: Apache-2.0" height="24" /></a>
 </p>
 
-<p align="center">
-  <strong>Supported By:</strong>
-</p>
+<h3 align="center">Supported By:</h3>
 
 <p align="center">
   <a href="https://www.mintlify.com/oss-program">
-    <img src="public/mossp.png" alt="Mintlify Open Source Program" width="400" style="border-radius: 12px;" />
+    <img src="public/mossp.png" alt="Mintlify Open Source Program" width="340" style="border-radius: 12px;" />
   </a>
 </p>
 
