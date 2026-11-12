@@ -35,6 +35,11 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache--2.0-blue.svg" alt="License: Apache-2.0" /></a>
 </p>
 
+<p align="center">
+  <strong>Sponsored & Supported By:</strong><br />
+  <a href="https://mintlify.com"><img src="https://img.shields.io/badge/Mintlify-Open%20Source%20Program-0D9373?style=for-the-badge&logo=mintlify&logoColor=white" alt="Mintlify Open Source Program" /></a>
+</p>
+
 ---
 
 ## 💡 Why Stockly.ai?
