@@ -41,7 +41,7 @@
 
 <p align="center">
   <a href="https://mintlify.com">
-    <img src="public/mossp.png" alt="Mintlify Open Source Program" width="280" style="border-radius: 10px;" />
+    <img src="public/mossp.png" alt="Mintlify Open Source Program" width="340" style="border-radius: 12px;" />
   </a>
 </p>
 
