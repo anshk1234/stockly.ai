@@ -25,12 +25,13 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/anshk1234/stockly.ai/actions/workflows/ci.yml"><img src="https://github.com/anshk1234/stockly.ai/actions/workflows/ci.yml/badge.svg" alt="CI Pipeline" /></a>
   <a href="https://stocklyai.vercel.app/"><img src="https://img.shields.io/badge/Deployed%20on-Vercel-black?logo=vercel" alt="Vercel Deployment" /></a>
   <a href="https://developers.cloudflare.com/d1/"><img src="https://img.shields.io/badge/Database-Cloudflare%20D1-F38020?logo=cloudflare&logoColor=white" alt="Database: Cloudflare D1" /></a>
   <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Framework-Next.js%2016-black?logo=next.js" alt="Next.js 16" /></a>
-  <a href="https://react.dev/"><img src="https://img.shields.io/badge/UI-React%2019-61DAFB?logo=react&logoColor=black" alt="React 19" /></a>
-  <a href="https://tailwindcss.com/"><img src="https://img.shields.io/badge/Styling-Tailwind%20CSS%20v4-38B2AC?logo=tailwind-css&logoColor=white" alt="Tailwind CSS v4" /></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/anshk1234/stockly.ai/actions/workflows/ci.yml"><img src="https://github.com/anshk1234/stockly.ai/actions/workflows/ci.yml/badge.svg" alt="CI Pipeline" /></a>
   <a href="https://www.bestpractices.dev/projects/16600"><img src="https://www.bestpractices.dev/projects/16600/badge" alt="OpenSSF Best Practices" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache--2.0-blue.svg" alt="License: Apache-2.0" /></a>
 </p>
