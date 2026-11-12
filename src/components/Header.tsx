@@ -5,6 +5,7 @@ import Link from "next/link";
 import { BellRing, LogOut, Star, User as UserIcon } from "lucide-react";
 import { SearchDropdown } from "./SearchDropdown";
 import { useApp } from "@/context/AppContext";
+import { UpcomingReleaseModal } from "./modals/UpcomingReleaseModal";
 
 interface HeaderProps {
   onOpenSearch?: () => void;
@@ -22,6 +23,7 @@ export function Header({ onSelectSymbol }: HeaderProps) {
     openNotificationDrawer,
   } = useApp();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isReleaseModalOpen, setIsReleaseModalOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown on outside click
@@ -57,6 +59,20 @@ export function Header({ onSelectSymbol }: HeaderProps) {
 
         {/* Col 3 (Right): Action Controls */}
         <div className="flex items-center justify-end gap-2 text-[var(--text-muted)] text-[12px] shrink-0">
+          {/* v0.1.1 Coming Soon Button */}
+          <button
+            type="button"
+            onClick={() => setIsReleaseModalOpen(true)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.09] border border-white/10 hover:border-white/20 backdrop-blur-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] text-neutral-200 hover:text-white transition-all duration-200 font-[var(--weight-medium)] whitespace-nowrap active:scale-[0.97] cursor-pointer"
+            title="Preview Upcoming v0.1.1 Updates"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span>v0.1.1 Coming Soon</span>
+          </button>
+
           <a
             href="https://github.com/anshk1234/stockly.ai"
             target="_blank"
@@ -146,6 +162,12 @@ export function Header({ onSelectSymbol }: HeaderProps) {
           )}
         </div>
       </div>
+
+      {/* Upcoming Release v0.1.1 Modal */}
+      <UpcomingReleaseModal
+        isOpen={isReleaseModalOpen}
+        onClose={() => setIsReleaseModalOpen(false)}
+      />
     </header>
   );
 }
