@@ -36,9 +36,12 @@
 </p>
 
 <p align="center">
-  <strong>Sponsored & Supported By:</strong><br />
+  <strong>Supported By:</strong>
+</p>
+
+<p align="center">
   <a href="https://mintlify.com">
-    <img src="public/mossp.png" alt="Mintlify Open Source Program" width="180" style="border-radius: 12px;" />
+    <img src="public/mossp.png" alt="Mintlify Open Source Program" width="280" style="border-radius: 10px;" />
   </a>
 </p>
 
