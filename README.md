@@ -38,11 +38,9 @@
 
 <p align="center">
   <a href="https://www.mintlify.com/oss-program">
-    <img src="public/mossp.png" alt="Mintlify Open Source Program" width="340" style="border-radius: 12px;" />
+    <img src="public/mossp.png" alt="Mintlify Open Source Program" width="340" style="border-radius: 12px;" align="middle" />
   </a>
-</p>
-
-<p align="center">
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
   <a href="https://equibles.com"><strong>Equibles</strong></a>: stock market data API
 </p>
 
