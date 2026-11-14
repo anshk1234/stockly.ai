@@ -42,6 +42,10 @@
   </a>
 </p>
 
+<p align="center">
+  <a href="https://equibles.com"><strong>Equibles</strong></a>: stock market data API
+</p>
+
 ---
 
 ## 💡 Why Stockly.ai?
