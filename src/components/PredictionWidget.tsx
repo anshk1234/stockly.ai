@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { Card, SectionTitle } from "@/components/ui/layout";
 import { PredictionMarketItem, FALLBACK_PREDICTIONS } from "@/lib/polymarket";
@@ -53,50 +54,53 @@ export function PredictionWidget({ category = "Finance" }: PredictionWidgetProps
 
       <div className="flex flex-col gap-[var(--space-3)]">
         {predictions.map((card) => (
-          <Card key={card.id} className="p-[16px]">
-            <div className="text-[13px] font-[var(--weight-medium)] text-[var(--text-primary)] mb-[var(--space-2)] leading-snug">
-              {card.title}
-            </div>
+          <Card key={card.id} className="p-[16px] hover:bg-[var(--bg-card-hover)] transition-colors cursor-pointer">
+            <Link href={`/predictions/${card.id}`} className="block">
+              <div className="text-[13px] font-[var(--weight-medium)] text-[var(--text-primary)] hover:text-white transition-colors mb-[var(--space-2)] leading-snug">
+                {card.title}
+              </div>
 
-            {/* Options Rows */}
-            <div className="flex flex-col gap-[var(--space-2)] mb-[var(--space-3)]">
-              {card.options.map((opt, i) => {
-                const isPositive = opt.change >= 0;
-                return (
-                  <div key={i} className="flex items-center justify-between text-[var(--text-xs)]">
-                    <span className="text-[var(--text-muted)] font-[var(--weight-regular)] truncate max-w-[140px]">
-                      {opt.label}
-                    </span>
-
-                    <div className="flex items-center gap-[var(--space-2)] shrink-0">
-                      <span className="font-[var(--weight-medium)] text-[var(--text-primary)] tabular-nums">
-                        {opt.percentage.toFixed(1)}%
+              {/* Options Rows */}
+              <div className="flex flex-col gap-[var(--space-2)] mb-[var(--space-3)]">
+                {card.options.map((opt, i) => {
+                  const isPositive = opt.change >= 0;
+                  return (
+                    <div key={i} className="flex items-center justify-between text-[var(--text-xs)]">
+                      <span className="text-[var(--text-muted)] font-[var(--weight-regular)] truncate max-w-[140px]">
+                        {opt.label}
                       </span>
 
-                      <div
-                        className={`flex items-center gap-0.5 text-[var(--text-xs)] font-[var(--weight-medium)] tabular-nums`}
-                        style={{ color: isPositive ? "#3ecf8e" : "#f2555a" }}
-                      >
-                        {isPositive ? (
-                          <ArrowUpRight className="w-3 h-3 stroke-[2]" />
-                        ) : (
-                          <ArrowDownRight className="w-3 h-3 stroke-[2]" />
-                        )}
-                        <span>{Math.abs(opt.change).toFixed(1)}%</span>
+                      <div className="flex items-center gap-[var(--space-2)] shrink-0">
+                        <span className="font-[var(--weight-medium)] text-[var(--text-primary)] tabular-nums">
+                          {opt.percentage.toFixed(1)}%
+                        </span>
+
+                        <div
+                          className={`flex items-center gap-0.5 text-[var(--text-xs)] font-[var(--weight-medium)] tabular-nums`}
+                          style={{ color: isPositive ? "#3ecf8e" : "#f2555a" }}
+                        >
+                          {isPositive ? (
+                            <ArrowUpRight className="w-3 h-3 stroke-[2]" />
+                          ) : (
+                            <ArrowDownRight className="w-3 h-3 stroke-[2]" />
+                          )}
+                          <span>{Math.abs(opt.change).toFixed(1)}%</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            </Link>
 
             {/* Footer metadata */}
             <div className="flex items-center justify-between text-[var(--text-xs)] text-[var(--text-muted)] pt-[var(--space-2)] border-t border-[var(--border)]">
               <span>{card.volume}</span>
               <a
-                href="https://polymarket.com"
+                href={card.url || (card.title ? `https://polymarket.com/event/${card.title.toLowerCase().replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "-")}` : "https://polymarket.com")}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
                 className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer font-[var(--weight-medium)]"
               >
                 {card.platform}

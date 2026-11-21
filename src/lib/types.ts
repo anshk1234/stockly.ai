@@ -174,3 +174,32 @@ export interface EnrichedAlert {
   additionalInstructions?: string;
 }
 
+export interface MovementSource {
+  title: string;
+  publisher: string;
+  link: string;
+  favicon?: string;
+}
+
+export interface MovementNode {
+  date: string; // e.g. "Nov 20" or "Nov 21, 4:49 AM ET"
+  isStatusNode?: boolean;
+  statusText?: string;
+  price?: number;
+  change?: number;
+  changePercent?: number;
+  afterHoursPrice?: number;
+  afterHoursChangePercent?: number;
+  currency?: string;
+  narrative?: string;
+  sources: MovementSource[];
+  sourceCount: number;
+}
+
+export interface NotablePriceMovementData {
+  symbol: string;
+  marketStatus: "OPEN" | "CLOSED";
+  marketStatusText: string;
+  movements: MovementNode[];
+}
+

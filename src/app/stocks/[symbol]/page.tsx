@@ -13,6 +13,7 @@ import { TickerLogo } from "@/components/ui/TickerLogo";
 import { InteractiveStockChart } from "@/components/stock/InteractiveStockChart";
 import { KeyStatsGrid } from "@/components/stock/KeyStatsGrid";
 import { CompanyProfileWidget } from "@/components/stock/CompanyProfileWidget";
+import { NotablePriceMovements } from "@/components/stock/NotablePriceMovements";
 import { PageContainer, TwoColumnLayout, Card } from "@/components/ui/layout";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { DetailedStockQuote, CandlePoint, TimeRange } from "@/lib/types";
@@ -382,6 +383,9 @@ export default function StockDetailPage({
                       isLoading={isLoadingChart}
                       footer={<KeyStatsGrid stock={stock} attached />}
                     />
+
+                    {/* Notable Price Movement Timeline */}
+                    <NotablePriceMovements symbol={stock.symbol} />
                   </div>
                 }
                 sidebar={<CompanyProfileWidget stock={stock} />}
