@@ -143,11 +143,11 @@ export function PredictionsView({
           {filteredCards.map((card) => (
             <Card
               key={card.id}
-              className="p-[16px] flex flex-col justify-between"
+              className="p-[16px] flex flex-col justify-between hover:bg-[var(--bg-card-hover)] transition-colors cursor-pointer"
             >
-              <div>
+              <Link href={`/predictions/${card.id}`} className="block flex-1">
                 <div className="flex items-start justify-between gap-2 mb-[var(--space-3)]">
-                  <div className="text-[var(--text-sm)] font-[var(--weight-medium)] text-[var(--text-primary)] leading-snug">
+                  <div className="text-[var(--text-sm)] font-[var(--weight-medium)] text-[var(--text-primary)] hover:text-white transition-colors leading-snug">
                     {card.title}
                   </div>
                   <span className="text-[var(--text-xs)] text-[var(--text-muted)] shrink-0 font-[var(--weight-regular)]">
@@ -187,14 +187,15 @@ export function PredictionsView({
                 <p className="text-[var(--text-xs)] text-[var(--text-muted)] leading-relaxed pt-2 border-t border-[var(--border)] mb-[var(--space-3)]">
                   {card.narrative}
                 </p>
-              </div>
+              </Link>
 
               <div className="flex items-center justify-between text-[var(--text-xs)] text-[var(--text-muted)] pt-2 border-t border-[var(--border)]">
                 <span>{card.sources} • {card.date}</span>
                 <a
-                  href="https://polymarket.com"
+                  href={card.url || (card.title ? `https://polymarket.com/event/${card.title.toLowerCase().replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "-")}` : "https://polymarket.com")}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
                   className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer font-[var(--weight-medium)]"
                 >
                   {card.platform}
