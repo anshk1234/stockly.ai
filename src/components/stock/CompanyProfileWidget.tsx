@@ -1,16 +1,18 @@
 "use client";
 
 import React, { useState } from "react";
-import { ChevronDown, ChevronUp, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { DetailedStockQuote } from "@/lib/types";
 import { formatCompactNumber } from "@/lib/utils";
 import { Card, SectionTitle } from "@/components/ui/layout";
+import { AnalystConsensusCard } from "./AnalystConsensusCard";
 
 interface CompanyProfileWidgetProps {
   stock: DetailedStockQuote;
+  onSwitchTab?: (tab: string) => void;
 }
 
-export function CompanyProfileWidget({ stock }: CompanyProfileWidgetProps) {
+export function CompanyProfileWidget({ stock, onSwitchTab }: CompanyProfileWidgetProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const isCrypto = stock.assetClass === "CRYPTOCURRENCY" || stock.symbol.endsWith("-USD");
@@ -111,36 +113,8 @@ export function CompanyProfileWidget({ stock }: CompanyProfileWidgetProps) {
         </Card>
       </div>
 
-      {/* Analyst Consensus Card (Shown ONLY for Equities that have actual Wall Street Coverage) */}
-      {!isCrypto && !isIndex && stock.analystRating && (
-        <div className="w-full">
-          <SectionTitle
-            action={
-              <button className="flex items-center text-[var(--text-xs)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors font-[var(--weight-regular)]">
-                <span>See all</span>
-                <ChevronRight className="w-3 h-3 ml-0.5" />
-              </button>
-            }
-          >
-            Analyst Consensus
-          </SectionTitle>
-
-          <Card className="p-[16px]">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-[var(--positive)]" />
-                <span className="text-[var(--text-sm)] font-[var(--weight-medium)] text-[var(--positive)]">
-                  {stock.analystRating}
-                </span>
-              </div>
-
-              <span className="text-[var(--text-xs)] text-[var(--text-muted)] font-[var(--weight-regular)]">
-                Wall Street Consensus
-              </span>
-            </div>
-          </Card>
-        </div>
-      )}
+      {/* Analyst Consensus Card */}
+      <AnalystConsensusCard stock={stock} onSeeAll={() => onSwitchTab?.("Analysis")} />
     </div>
   );
 }

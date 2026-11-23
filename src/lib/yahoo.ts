@@ -9,6 +9,9 @@ import {
   AssetCategory,
   MovementNode,
   NotablePriceMovementData,
+  AnalystConsensusData,
+  AnalystRecommendationRow,
+  StockAnalysisData,
 } from "./types";
 import { serverCache } from "./cache";
 
@@ -246,15 +249,28 @@ export async function getStockDetails(symbol: string): Promise<DetailedStockQuot
       const assetClass = isCrypto ? "CRYPTOCURRENCY" : isIndex ? "INDEX" : isEtf ? "ETF" : "EQUITY";
 
       let profile: any = {};
+      let financialData: any = {};
+      let recommendationTrend: any = {};
+
       if (assetClass === "EQUITY") {
-        profile = await serverCache.getOrSet<any>(`profile-${symbol}`, 86400, async () => {
-          try {
-            const summary = await yf.quoteSummary(symbol, { modules: ["assetProfile"] });
-            return summary?.assetProfile || {};
-          } catch {
-            return {};
-          }
+        const equitySummary = await serverCache.getOrSet<any>(`equity-summary-${symbol}`, 25200, async () => {
+          const [profileResult, financialResult] = await Promise.allSettled([
+            yf.quoteSummary(symbol, { modules: ["assetProfile"] }),
+            yf.quoteSummary(symbol, { modules: ["financialData", "recommendationTrend"] }),
+          ]);
+
+          const profileSummary = profileResult.status === "fulfilled" ? profileResult.value : {};
+          const financialSummary = financialResult.status === "fulfilled" ? financialResult.value : {};
+
+          return {
+            profile: profileSummary?.assetProfile || {},
+            financialData: financialSummary?.financialData || {},
+            recommendationTrend: financialSummary?.recommendationTrend || {},
+          };
         });
+        profile = equitySummary.profile || {};
+        financialData = equitySummary.financialData || {};
+        recommendationTrend = equitySummary.recommendationTrend || {};
       }
 
       const ceoOfficer = (profile.companyOfficers || []).find((o: any) =>
@@ -421,6 +437,58 @@ export async function getStockDetails(symbol: string): Promise<DetailedStockQuot
         summary,
         website: profile.website || quote.coinMarketCapLink,
         analystRating: assetClass === "EQUITY" ? quote.averageAnalystRating : undefined,
+        analystConsensus: ((): AnalystConsensusData | undefined => {
+          if (assetClass !== "EQUITY") return undefined;
+          const latestTrend = recommendationTrend?.trend?.[0] || {};
+          const strongBuy = latestTrend.strongBuy || 0;
+          const buy = latestTrend.buy || 0;
+          const hold = latestTrend.hold || 0;
+          const sell = latestTrend.sell || 0;
+          const strongSell = latestTrend.strongSell || 0;
+
+          const bullishCount = strongBuy + buy;
+          const neutralCount = hold;
+          const bearishCount = sell + strongSell;
+          const trendTotal = bullishCount + neutralCount + bearishCount;
+          const totalAnalysts = financialData.numberOfAnalystOpinions || trendTotal || 0;
+
+          let recommendationRating = "Hold";
+          const rawKey = (financialData.recommendationKey || "").toLowerCase();
+          if (rawKey.includes("strong_buy") || rawKey.includes("strongbuy")) recommendationRating = "Strong Buy";
+          else if (rawKey.includes("buy")) recommendationRating = "Buy";
+          else if (rawKey.includes("strong_sell") || rawKey.includes("strongsell")) recommendationRating = "Strong Sell";
+          else if (rawKey.includes("sell")) recommendationRating = "Sell";
+          else if (rawKey.includes("underperform")) recommendationRating = "Underperform";
+          else if (rawKey.includes("hold")) recommendationRating = "Hold";
+          else if (quote.averageAnalystRating) {
+            const match = quote.averageAnalystRating.match(/-\s*([A-Za-z\s]+)/);
+            if (match) recommendationRating = match[1].trim();
+          }
+
+          const targetLow = financialData.targetLowPrice != null ? Number(financialData.targetLowPrice) : undefined;
+          const targetHigh = financialData.targetHighPrice != null ? Number(financialData.targetHighPrice) : undefined;
+          const targetMean = financialData.targetMeanPrice != null ? Number(financialData.targetMeanPrice) : undefined;
+          const targetMedian = financialData.targetMedianPrice != null ? Number(financialData.targetMedianPrice) : undefined;
+          const currentPrice = quote.regularMarketPrice != null ? Number(quote.regularMarketPrice) : (financialData.currentPrice != null ? Number(financialData.currentPrice) : undefined);
+
+          if (totalAnalysts > 0 || targetLow != null) {
+            return {
+              recommendationKey: rawKey || undefined,
+              recommendationRating,
+              totalAnalysts,
+              bearishCount,
+              neutralCount,
+              bullishCount,
+              targetLow,
+              targetHigh,
+              targetMean,
+              targetMedian,
+              currentPrice,
+              currency: quote.currency || (symbol.endsWith(".NS") || symbol.startsWith("^NSE") ? "INR" : "USD"),
+            };
+          }
+          return undefined;
+        })(),
 
         // Crypto specific
         circulatingSupply: isCrypto ? quote.circulatingSupply : undefined,
@@ -448,7 +516,17 @@ export async function getStockChart(
   symbol: string,
   range: TimeRange = "1D"
 ): Promise<{ candles: CandlePoint[]; previousClose: number }> {
-  const ttl = range === "1D" ? 30 : range === "5D" ? 60 : range === "1M" ? 300 : 900;
+  // Ultra-protective caching: 24h for multi-year, 12h for multi-month, 10m for 5D, 60s for 1D
+  const ttl =
+    range === "1D"
+      ? 60
+      : range === "5D"
+      ? 600
+      : range === "1M"
+      ? 14400
+      : range === "6M" || range === "YTD"
+      ? 43200
+      : 86400; // 24 hours for 1Y, 5Y, MAX
 
   return serverCache.getOrSet(`chart-${symbol}-${range}`, ttl, async () => {
     try {
@@ -512,11 +590,13 @@ export async function getStockChart(
           const cutoff = now - 24 * 60 * 60 * 1000;
           quotes = quotes.filter((q) => q.date && new Date(q.date).getTime() >= cutoff);
         } else {
-          // Check if there are active candles from the current regular session
+          // Check if there are active candles from the current session (including pre-market)
+          const preStart = result?.meta?.currentTradingPeriod?.pre?.start;
           const regularStart = result?.meta?.currentTradingPeriod?.regular?.start;
-          const startMs = regularStart ? new Date(regularStart).getTime() : 0;
+          const sessionStart = preStart || regularStart;
+          const startMs = sessionStart ? new Date(sessionStart).getTime() : 0;
 
-          // If regular session has begun and has candles, use today's session
+          // If session has begun and has candles, retain session candles
           const currentSessionQuotes =
             startMs > 0 && startMs <= now
               ? quotes.filter((q) => q.date && new Date(q.date).getTime() >= startMs)
@@ -553,38 +633,11 @@ export async function getStockChart(
           volume: q.volume ?? 0,
         }));
 
-      // Append or update with current real-time market price so the curve extends directly to the present moment
-      const regularMarketPrice = result?.meta?.regularMarketPrice;
-      const regularMarketTime = result?.meta?.regularMarketTime
-        ? new Date(result.meta.regularMarketTime).getTime()
-        : null;
-
-      if (regularMarketPrice !== undefined && regularMarketPrice !== null && !isNaN(regularMarketPrice)) {
-        if (candles.length > 0) {
-          const lastCandle = candles[candles.length - 1];
-          const currentTime = regularMarketTime && regularMarketTime > lastCandle.timestamp ? regularMarketTime : now;
-          const minDeltaMs = range === "1D" ? 60000 : range === "5D" ? 300000 : range === "1M" ? 3600000 : 86400000;
-
-          if (currentTime - lastCandle.timestamp >= minDeltaMs) {
-            candles.push({
-              date: new Date(currentTime).toISOString(),
-              timestamp: currentTime,
-              open: regularMarketPrice,
-              high: Math.max(regularMarketPrice, lastCandle.close),
-              low: Math.min(regularMarketPrice, lastCandle.close),
-              close: regularMarketPrice,
-              volume: 0,
-            });
-          } else {
-            lastCandle.close = regularMarketPrice;
-          }
-        }
-      }
-
+      // Keep provider candles unmodified for historical records integrity
       return { candles, previousClose };
     } catch (error) {
       console.error(`Error fetching chart for ${symbol}:`, error);
-      return { candles: [], previousClose: 0 };
+      throw error;
     }
   });
 }
@@ -1106,6 +1159,187 @@ export async function getNotablePriceMovements(symbol: string): Promise<NotableP
           },
         ],
       };
+    }
+  });
+}
+
+/**
+ * Fetch complete Wall Street Analyst Research & Recommendations for Stock Analysis Tab
+ */
+export async function getStockAnalysis(symbol: string): Promise<StockAnalysisData | null> {
+  const cleanSym = symbol.trim().toUpperCase();
+
+  // Cache analyst analysis data for 7 hours (25,200 seconds)
+  return serverCache.getOrSet<StockAnalysisData | null>(`stock-analysis-${cleanSym}`, 25200, async () => {
+    try {
+      const quote: any = await yf.quote(cleanSym);
+      if (!quote || !quote.symbol) return null;
+
+      // Propagate provider rejection so failure is not cached as an empty summary
+      const summary: any = await yf.quoteSummary(cleanSym, {
+        modules: ["upgradeDowngradeHistory", "financialData", "recommendationTrend"],
+      });
+
+      const financialData = summary?.financialData || {};
+      const recommendationTrend = summary?.recommendationTrend || {};
+      const rawHistory = summary?.upgradeDowngradeHistory?.history || [];
+
+      const latestTrend = recommendationTrend.trend?.[0] || {};
+      const strongBuy = latestTrend.strongBuy || 0;
+      const buy = latestTrend.buy || 0;
+      const hold = latestTrend.hold || 0;
+      const sell = latestTrend.sell || 0;
+      const strongSell = latestTrend.strongSell || 0;
+
+      const bullishCount = strongBuy + buy;
+      const neutralCount = hold;
+      const bearishCount = sell + strongSell;
+      const trendTotal = bullishCount + neutralCount + bearishCount;
+      const totalAnalysts = financialData.numberOfAnalystOpinions || trendTotal || 0;
+
+      const targetLow = financialData.targetLowPrice != null ? Number(financialData.targetLowPrice) : undefined;
+      const targetHigh = financialData.targetHighPrice != null ? Number(financialData.targetHighPrice) : undefined;
+      const targetMean = financialData.targetMeanPrice != null ? Number(financialData.targetMeanPrice) : undefined;
+      // Do not substitute targetMean if targetMedian is not provided by provider
+      const targetMedian = financialData.targetMedianPrice != null ? Number(financialData.targetMedianPrice) : undefined;
+
+      const rawKey = (financialData.recommendationKey || "").toLowerCase();
+      const hasCoverage = totalAnalysts > 0 || targetMean != null || targetLow != null || Boolean(rawKey);
+
+      // Explicit no-coverage result; null is not cached by serverCache
+      if (!hasCoverage && rawHistory.length === 0) {
+        return null;
+      }
+
+      const bullishPct = totalAnalysts > 0 ? (bullishCount / totalAnalysts) * 100 : 0;
+      const neutralPct = totalAnalysts > 0 ? (neutralCount / totalAnalysts) * 100 : 0;
+      const bearishPct = totalAnalysts > 0 ? (bearishCount / totalAnalysts) * 100 : 0;
+
+      let recommendationRating = "Hold";
+      if (rawKey.includes("strong_buy") || rawKey.includes("strongbuy")) recommendationRating = "Strong Buy";
+      else if (rawKey.includes("buy")) recommendationRating = "Buy";
+      else if (rawKey.includes("strong_sell") || rawKey.includes("strongsell")) recommendationRating = "Strong Sell";
+      else if (rawKey.includes("sell")) recommendationRating = "Sell";
+      else if (rawKey.includes("underperform")) recommendationRating = "Underperform";
+      else if (rawKey.includes("hold")) recommendationRating = "Hold";
+
+      // Prioritize live page quote for currentPrice
+      const currentPrice = quote.regularMarketPrice != null ? Number(quote.regularMarketPrice) : (financialData.currentPrice != null ? Number(financialData.currentPrice) : 0);
+      const currency = quote.currency || (cleanSym.endsWith(".NS") || cleanSym.startsWith("^NSE") ? "INR" : "USD");
+
+      // Format verified Recommendations History only
+      const history: AnalystRecommendationRow[] = rawHistory.slice(0, 100).map((item: any, idx: number) => {
+        const firmName = item.firm || "Institutional Research";
+        const analystName = item.analyst?.trim() || undefined;
+        const currTarget = item.currentPriceTarget != null && item.currentPriceTarget > 0 ? Number(item.currentPriceTarget) : undefined;
+        const priorTarget = item.priorPriceTarget != null && item.priorPriceTarget > 0 ? Number(item.priorPriceTarget) : undefined;
+
+        let upside: number | undefined = undefined;
+        if (currTarget != null && currentPrice > 0) {
+          upside = Math.round(((currTarget - currentPrice) / currentPrice) * 1000) / 10;
+        }
+
+        const dateObj = item.epochGradeDate ? new Date(item.epochGradeDate) : new Date();
+        const dateStr = dateObj.toLocaleDateString("en-US", {
+          month: "2-digit",
+          day: "2-digit",
+          year: "numeric",
+        });
+
+        return {
+          id: `${cleanSym}-rec-${idx}-${dateObj.getTime()}`,
+          firm: firmName,
+          analyst: analystName,
+          toGrade: item.toGrade || "Hold",
+          fromGrade: item.fromGrade,
+          action: item.action,
+          priceTargetAction: item.priceTargetAction,
+          currentPriceTarget: currTarget,
+          priorPriceTarget: priorTarget,
+          upside,
+          date: dateStr,
+        };
+      });
+
+      // Synthesize Narrative
+      const currSym = currency === "INR" ? "₹" : "$";
+      const name = quote.shortName || quote.longName || cleanSym;
+
+      const formatP = (n?: number) => {
+        if (n == null) return "—";
+        return `${currSym}${n >= 1000 ? n.toLocaleString("en-US", { maximumFractionDigits: 2 }) : Number(n.toFixed(2))}`;
+      };
+
+      const overview = `Wall Street holds a ${recommendationRating} consensus on ${name}. Of ${totalAnalysts} covering analysts, ${bullishPct.toFixed(1)}% are bullish, ${neutralPct.toFixed(1)}% neutral, and ${bearishPct.toFixed(1)}% bearish. The average price target is ${formatP(targetMean)}${targetMedian != null ? ` with a median target of ${formatP(targetMedian)}` : ""}.`;
+
+      let rangeAnalysis = `Target prices for ${name} span from a low of ${formatP(targetLow)} to a high of ${formatP(targetHigh)}, with an average consensus target of ${formatP(targetMean)}.`;
+      if (targetLow == null && targetHigh == null) {
+        rangeAnalysis = `Specific 52-week price target extremes are currently unavailable from consensus tracking.`;
+      }
+
+      let recentChanges = "Recent brokerage coverage shows active monitoring across Wall Street desks.";
+      if (history.length > 0) {
+        const topH = history[0];
+        const secondH = history.length > 1 ? history[1] : null;
+
+        let changeDesc = `${topH.firm} maintained or adjusted rating to ${topH.toGrade}`;
+        if (topH.fromGrade) changeDesc = `${topH.firm} moved to ${topH.toGrade} from ${topH.fromGrade}`;
+        changeDesc += ` on ${topH.date}`;
+
+        if (topH.currentPriceTarget && topH.priorPriceTarget && topH.currentPriceTarget !== topH.priorPriceTarget) {
+          const isTargetLift = topH.currentPriceTarget > topH.priorPriceTarget;
+          const verb = isTargetLift ? "lifted" : "lowered";
+          changeDesc += ` and ${verb} its price target to ${formatP(topH.currentPriceTarget)} from ${formatP(topH.priorPriceTarget)}`;
+        } else if (topH.currentPriceTarget) {
+          changeDesc += ` with a price target of ${formatP(topH.currentPriceTarget)}`;
+        }
+
+        if (secondH) {
+          changeDesc += `. Meanwhile, ${secondH.firm} holds ${secondH.toGrade}${secondH.currentPriceTarget ? ` with a ${formatP(secondH.currentPriceTarget)} target` : ""}`;
+        }
+        changeDesc += ".";
+        recentChanges = changeDesc;
+      } else {
+        recentChanges = "Individual historical brokerage revisions are not published for this equity; aggregate consensus is derived from current institutional tracking.";
+      }
+
+      const sentimentContext = `Consensus sentiment reflects aggregate institutional models. Detailed brokerage notes and specific rationale behind individual rating changes are provided directly in firm research reports.`;
+
+      return {
+        symbol: cleanSym,
+        name,
+        currency,
+        currentPrice,
+        consensus: {
+          recommendationKey: rawKey || "hold",
+          recommendationRating,
+          totalAnalysts,
+          bullishCount,
+          neutralCount,
+          bearishCount,
+          bullishPct,
+          neutralPct,
+          bearishPct,
+        },
+        targets: {
+          low: targetLow,
+          high: targetHigh,
+          mean: targetMean,
+          median: targetMedian,
+          currentPrice,
+          currency,
+        },
+        history,
+        synthesis: {
+          overview,
+          rangeAnalysis,
+          recentChanges,
+          sentimentContext,
+        },
+      };
+    } catch (err) {
+      console.error(`Error in getStockAnalysis for ${cleanSym}:`, err);
+      throw err;
     }
   });
 }

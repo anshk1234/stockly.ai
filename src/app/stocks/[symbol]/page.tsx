@@ -14,6 +14,8 @@ import { InteractiveStockChart } from "@/components/stock/InteractiveStockChart"
 import { KeyStatsGrid } from "@/components/stock/KeyStatsGrid";
 import { CompanyProfileWidget } from "@/components/stock/CompanyProfileWidget";
 import { NotablePriceMovements } from "@/components/stock/NotablePriceMovements";
+import { StockAnalysisView } from "@/components/stock/StockAnalysisView";
+import { HistoricalDataView } from "@/components/stock/HistoricalDataView";
 import { PageContainer, TwoColumnLayout, Card } from "@/components/ui/layout";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { DetailedStockQuote, CandlePoint, TimeRange } from "@/lib/types";
@@ -126,19 +128,26 @@ export default function StockDetailPage({
           `/api/stock/${encodeURIComponent(symbol)}/chart?range=${range}`
         );
         const data = await res.json();
-        if (isCurrent && data.candles) {
-          chartCacheRef.current[range] = {
-            candles: data.candles,
-            previousClose: data.previousClose,
-            timestamp: Date.now(),
-          };
-          setCandles(data.candles);
-          if (data.previousClose) {
-            setPreviousClose(data.previousClose);
+        if (isCurrent) {
+          if (Array.isArray(data.candles) && data.candles.length > 0) {
+            chartCacheRef.current[range] = {
+              candles: data.candles,
+              previousClose: data.previousClose,
+              timestamp: Date.now(),
+            };
+            setCandles(data.candles);
+            if (data.previousClose) {
+              setPreviousClose(data.previousClose);
+            }
+          } else {
+            setCandles([]);
           }
         }
       } catch (err) {
         console.error("Error fetching chart data:", err);
+        if (isCurrent) {
+          setCandles([]);
+        }
       } finally {
         if (isCurrent) setIsLoadingChart(false);
       }
@@ -364,32 +373,42 @@ export default function StockDetailPage({
                 })}
               </div>
 
-              {/* TwoColumnLayout for Stock Detail View */}
-              <TwoColumnLayout
-                main={
-                  <div className="flex flex-col gap-[var(--space-4)]">
-                    <InteractiveStockChart
-                      symbol={stock.symbol}
-                      name={stock.name}
-                      exchange={stock.exchange}
-                      currency={stock.currency}
-                      initialPrice={stock.price}
-                      initialChange={stock.change}
-                      initialChangePercent={stock.changePercent}
-                      previousClose={previousClose || stock.previousClose}
-                      candles={candles}
-                      currentRange={currentRange}
-                      onRangeChange={handleRangeChange}
-                      isLoading={isLoadingChart}
-                      footer={<KeyStatsGrid stock={stock} attached />}
-                    />
+              {/* Tab Views - Keep InteractiveStockChart mounted to preserve comparison & chart settings */}
+              <div className={activeTab === "Overview" ? "block" : "hidden"}>
+                <TwoColumnLayout
+                  main={
+                    <div className="flex flex-col gap-[var(--space-4)]">
+                      <InteractiveStockChart
+                        symbol={stock.symbol}
+                        name={stock.name}
+                        exchange={stock.exchange}
+                        currency={stock.currency}
+                        initialPrice={stock.price}
+                        initialChange={stock.change}
+                        initialChangePercent={stock.changePercent}
+                        previousClose={previousClose || stock.previousClose}
+                        candles={candles}
+                        currentRange={currentRange}
+                        onRangeChange={handleRangeChange}
+                        isLoading={isLoadingChart}
+                        footer={<KeyStatsGrid stock={stock} attached />}
+                      />
 
-                    {/* Notable Price Movement Timeline */}
-                    <NotablePriceMovements symbol={stock.symbol} />
-                  </div>
-                }
-                sidebar={<CompanyProfileWidget stock={stock} />}
-              />
+                      {/* Notable Price Movement Timeline */}
+                      <NotablePriceMovements symbol={stock.symbol} />
+                    </div>
+                  }
+                  sidebar={<CompanyProfileWidget stock={stock} onSwitchTab={setActiveTab} />}
+                />
+              </div>
+
+              {activeTab === "Analysis" && (
+                <StockAnalysisView stock={stock} onSwitchTab={setActiveTab} />
+              )}
+
+              {activeTab === "Historical Data" && (
+                <HistoricalDataView stock={stock} onSwitchTab={setActiveTab} />
+              )}
             </div>
           )}
         </PageContainer>
