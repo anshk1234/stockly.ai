@@ -254,18 +254,19 @@ export async function getStockDetails(symbol: string): Promise<DetailedStockQuot
 
       if (assetClass === "EQUITY") {
         const equitySummary = await serverCache.getOrSet<any>(`equity-summary-${symbol}`, 25200, async () => {
-          try {
-            const summary = await yf.quoteSummary(symbol, {
-              modules: ["assetProfile", "financialData", "recommendationTrend"],
-            });
-            return {
-              profile: summary?.assetProfile || {},
-              financialData: summary?.financialData || {},
-              recommendationTrend: summary?.recommendationTrend || {},
-            };
-          } catch {
-            return { profile: {}, financialData: {}, recommendationTrend: {} };
-          }
+          const [profileResult, financialResult] = await Promise.allSettled([
+            yf.quoteSummary(symbol, { modules: ["assetProfile"] }),
+            yf.quoteSummary(symbol, { modules: ["financialData", "recommendationTrend"] }),
+          ]);
+
+          const profileSummary = profileResult.status === "fulfilled" ? profileResult.value : {};
+          const financialSummary = financialResult.status === "fulfilled" ? financialResult.value : {};
+
+          return {
+            profile: profileSummary?.assetProfile || {},
+            financialData: financialSummary?.financialData || {},
+            recommendationTrend: financialSummary?.recommendationTrend || {},
+          };
         });
         profile = equitySummary.profile || {};
         financialData = equitySummary.financialData || {};
@@ -468,7 +469,7 @@ export async function getStockDetails(symbol: string): Promise<DetailedStockQuot
           const targetHigh = financialData.targetHighPrice != null ? Number(financialData.targetHighPrice) : undefined;
           const targetMean = financialData.targetMeanPrice != null ? Number(financialData.targetMeanPrice) : undefined;
           const targetMedian = financialData.targetMedianPrice != null ? Number(financialData.targetMedianPrice) : undefined;
-          const currentPrice = financialData.currentPrice != null ? Number(financialData.currentPrice) : (quote.regularMarketPrice ?? undefined);
+          const currentPrice = quote.regularMarketPrice != null ? Number(quote.regularMarketPrice) : (financialData.currentPrice != null ? Number(financialData.currentPrice) : undefined);
 
           if (totalAnalysts > 0 || targetLow != null) {
             return {
@@ -589,11 +590,13 @@ export async function getStockChart(
           const cutoff = now - 24 * 60 * 60 * 1000;
           quotes = quotes.filter((q) => q.date && new Date(q.date).getTime() >= cutoff);
         } else {
-          // Check if there are active candles from the current regular session
+          // Check if there are active candles from the current session (including pre-market)
+          const preStart = result?.meta?.currentTradingPeriod?.pre?.start;
           const regularStart = result?.meta?.currentTradingPeriod?.regular?.start;
-          const startMs = regularStart ? new Date(regularStart).getTime() : 0;
+          const sessionStart = preStart || regularStart;
+          const startMs = sessionStart ? new Date(sessionStart).getTime() : 0;
 
-          // If regular session has begun and has candles, use today's session
+          // If session has begun and has candles, retain session candles
           const currentSessionQuotes =
             startMs > 0 && startMs <= now
               ? quotes.filter((q) => q.date && new Date(q.date).getTime() >= startMs)
@@ -630,38 +633,11 @@ export async function getStockChart(
           volume: q.volume ?? 0,
         }));
 
-      // Append or update with current real-time market price so the curve extends directly to the present moment
-      const regularMarketPrice = result?.meta?.regularMarketPrice;
-      const regularMarketTime = result?.meta?.regularMarketTime
-        ? new Date(result.meta.regularMarketTime).getTime()
-        : null;
-
-      if (regularMarketPrice !== undefined && regularMarketPrice !== null && !isNaN(regularMarketPrice)) {
-        if (candles.length > 0) {
-          const lastCandle = candles[candles.length - 1];
-          const currentTime = regularMarketTime && regularMarketTime > lastCandle.timestamp ? regularMarketTime : now;
-          const minDeltaMs = range === "1D" ? 60000 : range === "5D" ? 300000 : range === "1M" ? 3600000 : 86400000;
-
-          if (currentTime - lastCandle.timestamp >= minDeltaMs) {
-            candles.push({
-              date: new Date(currentTime).toISOString(),
-              timestamp: currentTime,
-              open: regularMarketPrice,
-              high: Math.max(regularMarketPrice, lastCandle.close),
-              low: Math.min(regularMarketPrice, lastCandle.close),
-              close: regularMarketPrice,
-              volume: 0,
-            });
-          } else {
-            lastCandle.close = regularMarketPrice;
-          }
-        }
-      }
-
+      // Keep provider candles unmodified for historical records integrity
       return { candles, previousClose };
     } catch (error) {
       console.error(`Error fetching chart for ${symbol}:`, error);
-      return { candles: [], previousClose: 0 };
+      throw error;
     }
   });
 }
@@ -1187,103 +1163,6 @@ export async function getNotablePriceMovements(symbol: string): Promise<NotableP
   });
 }
 
-const LEAD_ANALYSTS: Record<string, string> = {
-  "Barclays": "Dan Levy",
-  "GLJ Research": "Gordon L. Johnson",
-  "HSBC": "Michael Tyndall",
-  "UBS": "Joseph Spak",
-  "CLSA": "Christopher Richter",
-  "Canaccord Genuity": "George Gianarikas",
-  "Morgan Stanley": "Andrew Percoco",
-  "BNP Paribas": "James Picariello",
-  "RBC Capital": "Tom Narayan",
-  "Wedbush": "Dan Ives",
-  "Goldman Sachs": "Mark Delaney",
-  "Baird": "Ben Kallo",
-  "Deutsche Bank": "Edison Yu",
-  "Mizuho": "Vijay Rakesh",
-  "Piper Sandler": "Alexander Potter",
-  "Bernstein": "Toni Sacconaghi",
-  "JPMorgan": "Ryan Brinkman",
-  "JP Morgan": "Ryan Brinkman",
-  "Wells Fargo": "Colin Langan",
-  "Citigroup": "Itay Michaeli",
-  "Citi": "Itay Michaeli",
-  "Jefferies": "Philippe Houchois",
-  "MoffettNathanson": "Craig Moffett",
-  "Truist": "William Stein",
-  "Oppenheimer": "Rick Schafer",
-  "Stifel": "Ruben Roy",
-  "Raymond James": "Srini Pajjuri",
-  "KeyBanc": "John Vinh",
-  "Wolfe Research": "Chris Caso",
-  "BofA Securities": "Vivek Arya",
-  "B of A Securities": "Vivek Arya",
-  "Rosenblatt": "Hans Mosesmann",
-  "Needham": "Quinn Bolton",
-  "Cantor Fitzgerald": "C.J. Muse",
-  "Susquehanna": "Christopher Rolland",
-  "DA Davidson": "Gil Luria",
-  "Craig-Hallum": "Richard Shannon",
-  "Benchmark": "Cody Acree",
-};
-
-const INDIAN_INSTITUTIONAL_FIRMS = [
-  { firm: "Kotak Institutional Equities", analyst: "Kawaljeet Saluja" },
-  { firm: "Motilal Oswal", analyst: "Mukul Garg" },
-  { firm: "ICICI Securities", analyst: "Sanjeev Hota" },
-  { firm: "Jefferies India", analyst: "Akshat Agarwal" },
-  { firm: "Morgan Stanley India", analyst: "Gaurav Rateria" },
-  { firm: "CLSA India", analyst: "Pankaj Kapoor" },
-  { firm: "Goldman Sachs India", analyst: "Manish Adukia" },
-  { firm: "HDFC Securities", analyst: "Amit Chandra" },
-  { firm: "Axis Capital", analyst: "Shashi Bhusan" },
-  { firm: "Nomura India", analyst: "Rishit Parikh" },
-  { firm: "Macquarie India", analyst: "Ravi Menon" },
-  { firm: "Bernstein India", analyst: "Venugopal Garre" },
-  { firm: "BofA Securities India", analyst: "Kunal Vora" },
-  { firm: "Emkay Global", analyst: "Dipeshkumar Mehta" },
-  { firm: "Nuvama Institutional Equities", analyst: "Sandeep Shah" },
-  { firm: "JM Financial", analyst: "Abhishek Kumar" },
-  { firm: "Nirmal Bang", analyst: "Ayush Sharma" },
-  { firm: "Prabhudas Lilladher", analyst: "Aditi Patil" },
-  { firm: "Antique Stock Broking", analyst: "Vikas Ahuja" },
-  { firm: "Sharekhan", analyst: "Sanjeev Kumar" },
-  { firm: "Centrum Broking", analyst: "Siddharth Vora" },
-  { firm: "IDBI Capital", analyst: "Devang Bhatt" },
-  { firm: "Dolat Capital", analyst: "Rahul Jain" },
-  { firm: "Yes Securities", analyst: "Piyush Pandey" },
-  { firm: "Geojit Financial Services", analyst: "Vinod Nair" },
-];
-
-const GLOBAL_INSTITUTIONAL_FIRMS = [
-  { firm: "Morgan Stanley", analyst: "Andrew Percoco" },
-  { firm: "Goldman Sachs", analyst: "Mark Delaney" },
-  { firm: "JPMorgan", analyst: "Ryan Brinkman" },
-  { firm: "Bank of America", analyst: "Vivek Arya" },
-  { firm: "Citigroup", analyst: "Itay Michaeli" },
-  { firm: "Barclays", analyst: "Dan Levy" },
-  { firm: "UBS", analyst: "Joseph Spak" },
-  { firm: "Deutsche Bank", analyst: "Edison Yu" },
-  { firm: "Wells Fargo", analyst: "Colin Langan" },
-  { firm: "Jefferies", analyst: "Philippe Houchois" },
-  { firm: "Baird", analyst: "Ben Kallo" },
-  { firm: "Piper Sandler", analyst: "Alexander Potter" },
-  { firm: "RBC Capital", analyst: "Tom Narayan" },
-  { firm: "Stifel", analyst: "Ruben Roy" },
-  { firm: "KeyBanc", analyst: "John Vinh" },
-  { firm: "Wolfe Research", analyst: "Chris Caso" },
-  { firm: "Wedbush", analyst: "Dan Ives" },
-  { firm: "TD Cowen", analyst: "John Blackledge" },
-  { firm: "Mizuho", analyst: "Vijay Rakesh" },
-  { firm: "Bernstein", analyst: "Toni Sacconaghi" },
-  { firm: "Oppenheimer", analyst: "Rick Schafer" },
-  { firm: "Canaccord Genuity", analyst: "George Gianarikas" },
-  { firm: "CLSA", analyst: "Christopher Richter" },
-  { firm: "HSBC", analyst: "Michael Tyndall" },
-  { firm: "Needham", analyst: "Quinn Bolton" },
-];
-
 /**
  * Fetch complete Wall Street Analyst Research & Recommendations for Stock Analysis Tab
  */
@@ -1294,15 +1173,16 @@ export async function getStockAnalysis(symbol: string): Promise<StockAnalysisDat
   return serverCache.getOrSet<StockAnalysisData | null>(`stock-analysis-${cleanSym}`, 25200, async () => {
     try {
       const quote: any = await yf.quote(cleanSym);
-      if (!quote) return null;
+      if (!quote || !quote.symbol) return null;
 
+      // Propagate provider rejection so failure is not cached as an empty summary
       const summary: any = await yf.quoteSummary(cleanSym, {
         modules: ["upgradeDowngradeHistory", "financialData", "recommendationTrend"],
-      }).catch(() => ({}));
+      });
 
-      const financialData = summary.financialData || {};
-      const recommendationTrend = summary.recommendationTrend || {};
-      const rawHistory = summary.upgradeDowngradeHistory?.history || [];
+      const financialData = summary?.financialData || {};
+      const recommendationTrend = summary?.recommendationTrend || {};
+      const rawHistory = summary?.upgradeDowngradeHistory?.history || [];
 
       const latestTrend = recommendationTrend.trend?.[0] || {};
       const strongBuy = latestTrend.strongBuy || 0;
@@ -1315,14 +1195,27 @@ export async function getStockAnalysis(symbol: string): Promise<StockAnalysisDat
       const neutralCount = hold;
       const bearishCount = sell + strongSell;
       const trendTotal = bullishCount + neutralCount + bearishCount;
-      const totalAnalysts = financialData.numberOfAnalystOpinions || trendTotal || 25;
+      const totalAnalysts = financialData.numberOfAnalystOpinions || trendTotal || 0;
 
-      const bullishPct = totalAnalysts > 0 ? (bullishCount / totalAnalysts) * 100 : 50;
-      const neutralPct = totalAnalysts > 0 ? (neutralCount / totalAnalysts) * 100 : 40;
-      const bearishPct = totalAnalysts > 0 ? (bearishCount / totalAnalysts) * 100 : 10;
+      const targetLow = financialData.targetLowPrice != null ? Number(financialData.targetLowPrice) : undefined;
+      const targetHigh = financialData.targetHighPrice != null ? Number(financialData.targetHighPrice) : undefined;
+      const targetMean = financialData.targetMeanPrice != null ? Number(financialData.targetMeanPrice) : undefined;
+      // Do not substitute targetMean if targetMedian is not provided by provider
+      const targetMedian = financialData.targetMedianPrice != null ? Number(financialData.targetMedianPrice) : undefined;
+
+      const rawKey = (financialData.recommendationKey || "").toLowerCase();
+      const hasCoverage = totalAnalysts > 0 || targetMean != null || targetLow != null || Boolean(rawKey);
+
+      // Explicit no-coverage result; null is not cached by serverCache
+      if (!hasCoverage && rawHistory.length === 0) {
+        return null;
+      }
+
+      const bullishPct = totalAnalysts > 0 ? (bullishCount / totalAnalysts) * 100 : 0;
+      const neutralPct = totalAnalysts > 0 ? (neutralCount / totalAnalysts) * 100 : 0;
+      const bearishPct = totalAnalysts > 0 ? (bearishCount / totalAnalysts) * 100 : 0;
 
       let recommendationRating = "Hold";
-      const rawKey = (financialData.recommendationKey || "").toLowerCase();
       if (rawKey.includes("strong_buy") || rawKey.includes("strongbuy")) recommendationRating = "Strong Buy";
       else if (rawKey.includes("buy")) recommendationRating = "Buy";
       else if (rawKey.includes("strong_sell") || rawKey.includes("strongsell")) recommendationRating = "Strong Sell";
@@ -1330,17 +1223,14 @@ export async function getStockAnalysis(symbol: string): Promise<StockAnalysisDat
       else if (rawKey.includes("underperform")) recommendationRating = "Underperform";
       else if (rawKey.includes("hold")) recommendationRating = "Hold";
 
-      const currentPrice = financialData.currentPrice != null ? Number(financialData.currentPrice) : (quote.regularMarketPrice ?? 0);
-      const targetLow = financialData.targetLowPrice != null ? Number(financialData.targetLowPrice) : undefined;
-      const targetHigh = financialData.targetHighPrice != null ? Number(financialData.targetHighPrice) : undefined;
-      const targetMean = financialData.targetMeanPrice != null ? Number(financialData.targetMeanPrice) : undefined;
-      const targetMedian = financialData.targetMedianPrice != null ? Number(financialData.targetMedianPrice) : targetMean;
+      // Prioritize live page quote for currentPrice
+      const currentPrice = quote.regularMarketPrice != null ? Number(quote.regularMarketPrice) : (financialData.currentPrice != null ? Number(financialData.currentPrice) : 0);
       const currency = quote.currency || (cleanSym.endsWith(".NS") || cleanSym.startsWith("^NSE") ? "INR" : "USD");
 
-      // Format Recommendations History
+      // Format verified Recommendations History only
       const history: AnalystRecommendationRow[] = rawHistory.slice(0, 100).map((item: any, idx: number) => {
         const firmName = item.firm || "Institutional Research";
-        const analystName = LEAD_ANALYSTS[firmName] || `${firmName} Desk`;
+        const analystName = item.analyst?.trim() || undefined;
         const currTarget = item.currentPriceTarget != null && item.currentPriceTarget > 0 ? Number(item.currentPriceTarget) : undefined;
         const priorTarget = item.priorPriceTarget != null && item.priorPriceTarget > 0 ? Number(item.priorPriceTarget) : undefined;
 
@@ -1371,79 +1261,6 @@ export async function getStockAnalysis(symbol: string): Promise<StockAnalysisDat
         };
       });
 
-      // Fallback for Indian & global equities where exchange history is not exposed directly by Yahoo,
-      // but active consensus and price targets are published in financialData & recommendationTrend
-      if (history.length === 0 && (totalAnalysts > 0 || (bullishCount + neutralCount + bearishCount) > 0)) {
-        const isIndian = cleanSym.endsWith(".NS") || cleanSym.endsWith(".BO") || cleanSym.startsWith("^NSE");
-        const firmPool = isIndian ? INDIAN_INSTITUTIONAL_FIRMS : GLOBAL_INSTITUTIONAL_FIRMS;
-
-        const lowP = targetLow ?? (currentPrice > 0 ? currentPrice * 0.85 : 100);
-        const highP = targetHigh ?? (currentPrice > 0 ? currentPrice * 1.35 : 200);
-        const meanP = targetMean ?? ((lowP + highP) / 2);
-
-        const categories: { grade: string; count: number; bias: "bull" | "neutral" | "bear" }[] = [
-          { grade: "Strong Buy", count: strongBuy, bias: "bull" },
-          { grade: "Buy", count: buy, bias: "bull" },
-          { grade: "Hold", count: hold, bias: "neutral" },
-          { grade: "Sell", count: sell, bias: "bear" },
-          { grade: "Strong Sell", count: strongSell, bias: "bear" },
-        ];
-
-        let firmIdx = 0;
-        const now = Date.now();
-
-        for (const cat of categories) {
-          for (let c = 0; c < cat.count; c++) {
-            const firmData = firmPool[firmIdx % firmPool.length];
-            firmIdx++;
-
-            const daysAgo = Math.floor((c * 3 + firmIdx * 2) % 45) + 1;
-            const dateObj = new Date(now - daysAgo * 86400000);
-            const dateStr = dateObj.toLocaleDateString("en-US", {
-              month: "2-digit",
-              day: "2-digit",
-              year: "numeric",
-            });
-
-            let priceTarget: number;
-            if (cat.bias === "bull") {
-              const factor = (c + 1) / (cat.count + 1);
-              priceTarget = Math.round((meanP + (highP - meanP) * factor) * 100) / 100;
-            } else if (cat.bias === "bear") {
-              const factor = (c + 1) / (cat.count + 1);
-              priceTarget = Math.round((lowP + (meanP - lowP) * factor * 0.4) * 100) / 100;
-            } else {
-              const jitter = ((c % 5) - 2) * 0.015;
-              priceTarget = Math.round(meanP * (1 + jitter) * 100) / 100;
-            }
-
-            const priorTarget = Math.round(priceTarget * (cat.bias === "bull" ? 0.94 : cat.bias === "bear" ? 1.05 : 0.98) * 100) / 100;
-
-            let upside: number | undefined = undefined;
-            if (currentPrice > 0) {
-              upside = Math.round(((priceTarget - currentPrice) / currentPrice) * 1000) / 10;
-            }
-
-            history.push({
-              id: `${cleanSym}-synth-${history.length}`,
-              firm: firmData.firm,
-              analyst: firmData.analyst,
-              toGrade: cat.grade,
-              fromGrade: cat.bias === "bull" ? "Hold" : cat.bias === "bear" ? "Hold" : undefined,
-              action: cat.bias === "bull" ? "up" : cat.bias === "bear" ? "down" : "main",
-              priceTargetAction: cat.bias === "bull" ? "Raises" : cat.bias === "bear" ? "Lowers" : "Maintains",
-              currentPriceTarget: priceTarget,
-              priorPriceTarget: priorTarget,
-              upside,
-              date: dateStr,
-            });
-          }
-        }
-
-        // Sort by date descending
-        history.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-      }
-
       // Synthesize Narrative
       const currSym = currency === "INR" ? "₹" : "$";
       const name = quote.shortName || quote.longName || cleanSym;
@@ -1453,41 +1270,40 @@ export async function getStockAnalysis(symbol: string): Promise<StockAnalysisDat
         return `${currSym}${n >= 1000 ? n.toLocaleString("en-US", { maximumFractionDigits: 2 }) : Number(n.toFixed(2))}`;
       };
 
-      const overview = `Wall Street holds a ${recommendationRating} consensus on ${name}, though conviction is split: of ${totalAnalysts} analysts, ${bullishPct.toFixed(1)}% are bullish, ${neutralPct.toFixed(1)}% neutral, and just ${bearishPct.toFixed(1)}% bearish. The average price target is ${formatP(targetMean)} and the median is ${formatP(targetMedian)}.`;
+      const overview = `Wall Street holds a ${recommendationRating} consensus on ${name}. Of ${totalAnalysts} covering analysts, ${bullishPct.toFixed(1)}% are bullish, ${neutralPct.toFixed(1)}% neutral, and ${bearishPct.toFixed(1)}% bearish. The average price target is ${formatP(targetMean)}${targetMedian != null ? ` with a median target of ${formatP(targetMedian)}` : ""}.`;
 
-      let lowestFirmName = "";
-      let lowestTarget = Infinity;
-      for (const h of history) {
-        if (h.currentPriceTarget && h.currentPriceTarget < lowestTarget) {
-          lowestTarget = h.currentPriceTarget;
-          lowestFirmName = h.firm;
-        }
+      let rangeAnalysis = `Target prices for ${name} span from a low of ${formatP(targetLow)} to a high of ${formatP(targetHigh)}, with an average consensus target of ${formatP(targetMean)}.`;
+      if (targetLow == null && targetHigh == null) {
+        rangeAnalysis = `Specific 52-week price target extremes are currently unavailable from consensus tracking.`;
       }
 
-      const clusterLow = targetMean ? Math.round(targetMean * 0.88) : 0;
-      const clusterHigh = targetMean ? Math.round(targetMean * 1.15) : 0;
-
-      const rangeAnalysis = `Targets range from a high of ${formatP(targetHigh)} to a low of ${formatP(targetLow)}${lowestFirmName ? ` from bear ${lowestFirmName}` : ""}. Most other targets cluster in the ${currSym}${clusterLow}–${currSym}${clusterHigh} range.`;
-
-      const recentUpgrades = history.slice(0, 5).filter(h => h.action === "up" || (h.upside && h.upside > 0));
-      let recentChanges = "Recent rating changes have shown active coverage revisions across major Wall Street desks.";
+      let recentChanges = "Recent brokerage coverage shows active monitoring across Wall Street desks.";
       if (history.length > 0) {
         const topH = history[0];
         const secondH = history.length > 1 ? history[1] : null;
-        let changeDesc = `${topH.firm} moved to ${topH.toGrade}`;
-        if (topH.fromGrade) changeDesc += ` from ${topH.fromGrade}`;
+
+        let changeDesc = `${topH.firm} maintained or adjusted rating to ${topH.toGrade}`;
+        if (topH.fromGrade) changeDesc = `${topH.firm} moved to ${topH.toGrade} from ${topH.fromGrade}`;
         changeDesc += ` on ${topH.date}`;
+
         if (topH.currentPriceTarget && topH.priorPriceTarget && topH.currentPriceTarget !== topH.priorPriceTarget) {
-          changeDesc += ` and lifted its target to ${formatP(topH.currentPriceTarget)} from ${formatP(topH.priorPriceTarget)}`;
+          const isTargetLift = topH.currentPriceTarget > topH.priorPriceTarget;
+          const verb = isTargetLift ? "lifted" : "lowered";
+          changeDesc += ` and ${verb} its price target to ${formatP(topH.currentPriceTarget)} from ${formatP(topH.priorPriceTarget)}`;
+        } else if (topH.currentPriceTarget) {
+          changeDesc += ` with a price target of ${formatP(topH.currentPriceTarget)}`;
         }
+
         if (secondH) {
-          changeDesc += `. Meanwhile, ${secondH.firm} maintains ${secondH.toGrade}${secondH.currentPriceTarget ? ` with a ${formatP(secondH.currentPriceTarget)} target` : ""}`;
+          changeDesc += `. Meanwhile, ${secondH.firm} holds ${secondH.toGrade}${secondH.currentPriceTarget ? ` with a ${formatP(secondH.currentPriceTarget)} target` : ""}`;
         }
         changeDesc += ".";
-        recentChanges = `Recent rating changes have mostly been ${recentUpgrades.length >= 2 ? "upgrades" : "adjustments"}. ${changeDesc}`;
+        recentChanges = changeDesc;
+      } else {
+        recentChanges = "Individual historical brokerage revisions are not published for this equity; aggregate consensus is derived from current institutional tracking.";
       }
 
-      const sentimentContext = `The shift in sentiment coincides with strategic product execution, demand forecasts, and upcoming earnings milestones. Institutional commentary remains concentrated on long-term margins and market share sustainability.`;
+      const sentimentContext = `Consensus sentiment reflects aggregate institutional models. Detailed brokerage notes and specific rationale behind individual rating changes are provided directly in firm research reports.`;
 
       return {
         symbol: cleanSym,
@@ -1523,7 +1339,7 @@ export async function getStockAnalysis(symbol: string): Promise<StockAnalysisDat
       };
     } catch (err) {
       console.error(`Error in getStockAnalysis for ${cleanSym}:`, err);
-      return null;
+      throw err;
     }
   });
 }

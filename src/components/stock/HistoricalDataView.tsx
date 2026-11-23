@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { DetailedStockQuote, CandlePoint, TimeRange } from "@/lib/types";
 import { TwoColumnLayout } from "@/components/ui/layout";
@@ -24,10 +25,18 @@ const TIMEFRAMES: TimeRange[] = ["1D", "5D", "1M", "6M", "YTD", "1Y", "5Y", "MAX
 const INTRADAY_INTERVALS = ["1 min", "5 min", "15 min", "30 min"] as const;
 type IntradayInterval = (typeof INTRADAY_INTERVALS)[number];
 
+interface CacheEntry {
+  candles: CandlePoint[];
+  timestamp: number;
+}
+
 export function HistoricalDataView({ stock, onSwitchTab }: HistoricalDataViewProps) {
   const [selectedRange, setSelectedRange] = useState<TimeRange>("1D");
+  const [loadedRange, setLoadedRange] = useState<TimeRange | null>(null);
   const [candles, setCandles] = useState<CandlePoint[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -41,10 +50,39 @@ export function HistoricalDataView({ stock, onSwitchTab }: HistoricalDataViewPro
   // Download Menu Popover state
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
 
-  // In-memory cache for loaded chart ranges
-  const cacheRef = useRef<Record<string, CandlePoint[]>>({});
+  // In-memory cache for loaded chart ranges with 5-minute TTL
+  const cacheRef = useRef<Record<string, CacheEntry>>({});
   const optionsRef = useRef<HTMLDivElement>(null);
   const downloadRef = useRef<HTMLDivElement>(null);
+
+  const isCrypto =
+    stock.assetClass === "CRYPTOCURRENCY" ||
+    stock.symbol.endsWith("-USD") ||
+    stock.symbol.startsWith("BTC") ||
+    stock.symbol.startsWith("ETH");
+
+  const isIndia = stock.currency === "INR" || stock.symbol.endsWith(".NS") || stock.symbol.startsWith("^NSE");
+  const targetTz = isCrypto ? "UTC" : isIndia ? "Asia/Kolkata" : "America/New_York";
+
+  const tzLabel = useMemo(() => {
+    try {
+      const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone: targetTz,
+        timeZoneName: "short",
+      }).formatToParts(new Date());
+      return parts.find((p) => p.type === "timeZoneName")?.value || (isIndia ? "IST" : isCrypto ? "UTC" : "EST");
+    } catch {
+      return isIndia ? "IST" : isCrypto ? "UTC" : "EST";
+    }
+  }, [targetTz, isIndia, isCrypto]);
+
+  // Adjust interval when timeframe changes
+  const handleSelectRange = (range: TimeRange) => {
+    setSelectedRange(range);
+    if (range === "5D" && priceInterval === "1 min") {
+      setPriceInterval("5 min");
+    }
+  };
 
   // Close popovers on outside click
   useEffect(() => {
@@ -60,29 +98,44 @@ export function HistoricalDataView({ stock, onSwitchTab }: HistoricalDataViewPro
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Fetch candles when range changes
+  // Fetch candles when range or retryKey changes
   useEffect(() => {
     let isCurrent = true;
     setCurrentPage(1);
 
-    if (cacheRef.current[selectedRange]) {
-      setCandles(cacheRef.current[selectedRange]);
+    const cached = cacheRef.current[selectedRange];
+    const now = Date.now();
+    // 5-minute cache TTL, only reuse if non-empty
+    if (cached && cached.candles.length > 0 && now - cached.timestamp < 300000) {
+      setCandles(cached.candles);
+      setLoadedRange(selectedRange);
       setLoading(false);
+      setFetchError(null);
       return;
     }
 
     setLoading(true);
+    setFetchError(null);
+
     async function fetchCandles() {
       try {
         const res = await fetch(`/api/stock/${encodeURIComponent(stock.symbol)}/chart?range=${selectedRange}`);
         if (!res.ok) throw new Error("Failed to fetch historical chart data");
         const json = await res.json();
         if (isCurrent && Array.isArray(json.candles)) {
-          cacheRef.current[selectedRange] = json.candles;
+          cacheRef.current[selectedRange] = {
+            candles: json.candles,
+            timestamp: Date.now(),
+          };
           setCandles(json.candles);
+          setLoadedRange(selectedRange);
+          setFetchError(null);
         }
       } catch (err) {
         console.error("Error fetching historical table candles:", err);
+        if (isCurrent) {
+          setFetchError("Unable to retrieve historical price data for this timeframe.");
+        }
       } finally {
         if (isCurrent) setLoading(false);
       }
@@ -92,37 +145,51 @@ export function HistoricalDataView({ stock, onSwitchTab }: HistoricalDataViewPro
     return () => {
       isCurrent = false;
     };
-  }, [stock.symbol, selectedRange]);
+  }, [stock.symbol, selectedRange, retryKey]);
 
   const isIntraday = selectedRange === "1D" || selectedRange === "5D";
+  const isHourly1M = selectedRange === "1M";
 
   // Filter & Resample candles based on options
   const processedCandles = useMemo(() => {
-    if (!candles || candles.length === 0) return [];
+    // Only display/export candles if they match the currently requested range
+    if (!candles || candles.length === 0 || loadedRange !== selectedRange) return [];
 
     let filtered = [...candles];
 
-    // Filter Extended Hours for intraday
-    if (isIntraday && !extendedHours) {
+    // Filter Extended Hours for intraday equities (skip filtering for crypto)
+    if (isIntraday && !extendedHours && !isCrypto) {
       filtered = filtered.filter((c) => {
-        const d = new Date(c.timestamp);
-        const hours = d.getUTCHours();
-        const mins = d.getUTCMinutes();
-        const totalMins = hours * 60 + mins;
-        // Approx regular hours: US: 14:30 to 21:00 UTC; IN: 03:45 to 10:00 UTC
-        const isIndia = stock.currency === "INR" || stock.symbol.endsWith(".NS");
-        if (isIndia) {
-          return totalMins >= 225 && totalMins <= 600;
+        try {
+          const parts = new Intl.DateTimeFormat("en-US", {
+            timeZone: targetTz,
+            hourCycle: "h23",
+            hour: "numeric",
+            minute: "numeric",
+          }).formatToParts(new Date(c.timestamp));
+
+          const hourStr = parts.find((p) => p.type === "hour")?.value || "0";
+          const minStr = parts.find((p) => p.type === "minute")?.value || "0";
+          const totalMins = parseInt(hourStr, 10) * 60 + parseInt(minStr, 10);
+
+          if (isIndia) {
+            // NSE regular session: 9:15 AM to 3:30 PM (555 to 930 mins)
+            return totalMins >= 555 && totalMins <= 930;
+          }
+          // US regular session: 9:30 AM to 4:00 PM local (570 to 960 mins)
+          return totalMins >= 570 && totalMins <= 960;
+        } catch {
+          return true;
         }
-        return totalMins >= 870 && totalMins <= 1260;
       });
-      // Fallback if filter leaves empty (e.g. weekend or timezone shift)
+      // Fallback if filter leaves empty (e.g. holiday or early close)
       if (filtered.length === 0) filtered = [...candles];
     }
 
     // Resample intraday intervals (5m, 15m, 30m)
-    if (isIntraday && priceInterval !== "1 min") {
-      const bucketSizeMins = priceInterval === "5 min" ? 5 : priceInterval === "15 min" ? 15 : 30;
+    const effectiveInterval = selectedRange === "5D" && priceInterval === "1 min" ? "5 min" : priceInterval;
+    if (isIntraday && effectiveInterval !== "1 min") {
+      const bucketSizeMins = effectiveInterval === "5 min" ? 5 : effectiveInterval === "15 min" ? 15 : 30;
       const bucketMs = bucketSizeMins * 60 * 1000;
       const buckets: Record<number, CandlePoint[]> = {};
 
@@ -157,7 +224,7 @@ export function HistoricalDataView({ stock, onSwitchTab }: HistoricalDataViewPro
 
     // Reverse chronological order (latest candle on top)
     return filtered.slice().reverse();
-  }, [candles, isIntraday, extendedHours, priceInterval, stock.currency, stock.symbol]);
+  }, [candles, loadedRange, selectedRange, isIntraday, extendedHours, isCrypto, priceInterval, targetTz, isIndia]);
 
   // Pagination slices
   const totalPages = Math.max(1, Math.ceil(processedCandles.length / ROWS_PER_PAGE));
@@ -170,12 +237,27 @@ export function HistoricalDataView({ stock, onSwitchTab }: HistoricalDataViewPro
 
   const formatTimestamp = (timestamp: number, isFirstRow: boolean) => {
     const d = new Date(timestamp);
-    if (!isIntraday) {
-      return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    if (!isIntraday && !isHourly1M) {
+      return d.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        timeZone: targetTz,
+      });
     }
-    const dateStr = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-    const timeStr = d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
-    return isFirstRow ? `${dateStr}, ${timeStr} EST` : `${dateStr}, ${timeStr}`;
+    const dateStr = d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      timeZone: targetTz,
+    });
+    const timeStr = d.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+      timeZone: targetTz,
+    });
+    return isFirstRow ? `${dateStr}, ${timeStr} ${tzLabel}` : `${dateStr}, ${timeStr}`;
   };
 
   const formatPrice = (val: number, isFirstRow: boolean) => {
@@ -196,7 +278,7 @@ export function HistoricalDataView({ stock, onSwitchTab }: HistoricalDataViewPro
   // Export handlers
   const handleExportCSV = () => {
     setIsDownloadOpen(false);
-    if (processedCandles.length === 0) return;
+    if (processedCandles.length === 0 || loadedRange !== selectedRange) return;
 
     const headers = ["Date", "Open", "High", "Low", "Close", "Volume"];
     const csvRows = [headers.join(",")];
@@ -219,12 +301,12 @@ export function HistoricalDataView({ stock, onSwitchTab }: HistoricalDataViewPro
 
   const handleExportExcel = () => {
     setIsDownloadOpen(false);
-    if (processedCandles.length === 0) return;
+    if (processedCandles.length === 0 || loadedRange !== selectedRange) return;
 
     const tableRows = processedCandles
       .map(
         (c) =>
-          `<tr><td>${new Date(c.timestamp).toLocaleString("en-US")}</td><td>${c.open}</td><td>${c.high}</td><td>${c.low}</td><td>${c.close}</td><td>${c.volume}</td></tr>`
+          `<tr><td>${new Date(c.timestamp).toLocaleString("en-US", { timeZone: targetTz })}</td><td>${c.open}</td><td>${c.high}</td><td>${c.low}</td><td>${c.close}</td><td>${c.volume}</td></tr>`
       )
       .join("");
 
@@ -258,6 +340,10 @@ export function HistoricalDataView({ stock, onSwitchTab }: HistoricalDataViewPro
     URL.revokeObjectURL(url);
   };
 
+  const availableIntervals = selectedRange === "5D"
+    ? (["5 min", "15 min", "30 min"] as const)
+    : INTRADAY_INTERVALS;
+
   return (
     <TwoColumnLayout
       main={
@@ -274,7 +360,7 @@ export function HistoricalDataView({ stock, onSwitchTab }: HistoricalDataViewPro
                     <button
                       key={range}
                       type="button"
-                      onClick={() => setSelectedRange(range)}
+                      onClick={() => handleSelectRange(range)}
                       className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${
                         isActive
                           ? "bg-[var(--bg-card-hover)] text-white border border-[var(--border)]"
@@ -321,8 +407,12 @@ export function HistoricalDataView({ stock, onSwitchTab }: HistoricalDataViewPro
                         <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block mb-1.5">
                           Price Interval
                         </label>
-                        <div className="grid grid-cols-4 gap-1 bg-zinc-900/80 p-1 rounded-lg border border-zinc-800">
-                          {INTRADAY_INTERVALS.map((intv) => (
+                        <div
+                          className={`grid gap-1 bg-zinc-900/80 p-1 rounded-lg border border-zinc-800 ${
+                            availableIntervals.length === 3 ? "grid-cols-3" : "grid-cols-4"
+                          }`}
+                        >
+                          {availableIntervals.map((intv) => (
                             <button
                               key={intv}
                               type="button"
@@ -420,6 +510,18 @@ export function HistoricalDataView({ stock, onSwitchTab }: HistoricalDataViewPro
                 <Loader2 className="w-6 h-6 animate-spin text-zinc-500" />
                 <span className="text-xs">Loading historical price records...</span>
               </div>
+            ) : fetchError ? (
+              <div className="flex flex-col items-center justify-center min-h-[380px] gap-3 text-zinc-400 p-8 text-center">
+                <p className="text-xs text-rose-400">{fetchError}</p>
+                <button
+                  type="button"
+                  onClick={() => setRetryKey((k) => k + 1)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-200 bg-zinc-800 hover:bg-zinc-700 rounded-lg border border-[var(--border)] transition-colors cursor-pointer"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Retry</span>
+                </button>
+              </div>
             ) : processedCandles.length === 0 ? (
               <div className="p-12 text-center text-xs text-zinc-400">
                 No historical records available for the selected range.
@@ -485,11 +587,11 @@ export function HistoricalDataView({ stock, onSwitchTab }: HistoricalDataViewPro
 
                 {/* Pagination Footer */}
                 <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--border)] bg-zinc-900/20 text-xs">
-                  {/* Previous Button */}
+                  {/* Previous Button: decrements from currentPageSafe */}
                   <button
                     type="button"
                     disabled={currentPageSafe === 1}
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    onClick={() => setCurrentPage(Math.max(1, currentPageSafe - 1))}
                     className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[var(--border)] font-medium transition-colors cursor-pointer ${
                       currentPageSafe === 1
                         ? "opacity-30 cursor-not-allowed text-zinc-500 border-zinc-800"
@@ -509,7 +611,7 @@ export function HistoricalDataView({ stock, onSwitchTab }: HistoricalDataViewPro
                   <button
                     type="button"
                     disabled={currentPageSafe === totalPages}
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    onClick={() => setCurrentPage(Math.min(totalPages, currentPageSafe + 1))}
                     className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[var(--border)] font-medium transition-colors cursor-pointer ${
                       currentPageSafe === totalPages
                         ? "opacity-30 cursor-not-allowed text-zinc-500 border-zinc-800"

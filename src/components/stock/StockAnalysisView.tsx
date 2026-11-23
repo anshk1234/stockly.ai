@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Info, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { Info, ChevronDown, ChevronUp, Loader2, RefreshCw } from "lucide-react";
 import { DetailedStockQuote, StockAnalysisData, AnalystRecommendationRow } from "@/lib/types";
 import { TwoColumnLayout } from "@/components/ui/layout";
 
@@ -13,22 +13,39 @@ interface StockAnalysisViewProps {
 export function StockAnalysisView({ stock }: StockAnalysisViewProps) {
   const [data, setData] = useState<StockAnalysisData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
   const [showAllRows, setShowAllRows] = useState(false);
 
   useEffect(() => {
     let isCurrent = true;
     setLoading(true);
+    setError(null);
 
     async function loadAnalysis() {
       try {
         const res = await fetch(`/api/stock/${encodeURIComponent(stock.symbol)}/analysis`);
-        if (!res.ok) throw new Error("Failed to load analysis");
+        if (!res.ok) {
+          if (res.status === 404) {
+            // Explicitly confirmed no coverage
+            if (isCurrent) {
+              setData(null);
+              setError(null);
+            }
+            return;
+          }
+          throw new Error(`Failed to load analysis: ${res.status}`);
+        }
         const json = await res.json();
-        if (isCurrent && json.analysis) {
-          setData(json.analysis);
+        if (isCurrent) {
+          setData(json.analysis || null);
+          setError(null);
         }
       } catch (err) {
         console.error("Error loading analysis tab:", err);
+        if (isCurrent) {
+          setError("Unable to load analyst consensus & research at this time.");
+        }
       } finally {
         if (isCurrent) setLoading(false);
       }
@@ -38,7 +55,7 @@ export function StockAnalysisView({ stock }: StockAnalysisViewProps) {
     return () => {
       isCurrent = false;
     };
-  }, [stock.symbol]);
+  }, [stock.symbol, retryKey]);
 
   const currencySymbol = stock.currency === "INR" ? "₹" : "$";
 
@@ -66,6 +83,22 @@ export function StockAnalysisView({ stock }: StockAnalysisViewProps) {
       <div className="flex flex-col items-center justify-center min-h-[350px] gap-3 text-zinc-400">
         <Loader2 className="w-6 h-6 animate-spin text-zinc-400" />
         <span className="text-xs">Loading Wall Street analyst consensus & research...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[350px] gap-3 p-8 text-center bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl">
+        <p className="text-xs text-rose-400">{error}</p>
+        <button
+          type="button"
+          onClick={() => setRetryKey((k) => k + 1)}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-200 bg-zinc-800 hover:bg-zinc-700 rounded-lg border border-[var(--border)] transition-colors cursor-pointer"
+        >
+          <RefreshCw className="w-3.5 h-3.5" />
+          <span>Retry</span>
+        </button>
       </div>
     );
   }
@@ -112,7 +145,8 @@ export function StockAnalysisView({ stock }: StockAnalysisViewProps) {
 
   const minSpan = Math.min(currPct, meanPct);
   const spanWidth = Math.max(2, Math.abs(meanPct - currPct));
-  const isUpside = meanPct >= currPct;
+  // Compare raw targets before clamping for track highlight color
+  const isUpside = (rawTargetMean ?? 0) >= (currentPrice ?? 0);
 
   const visibleHistory: AnalystRecommendationRow[] = showAllRows ? data.history : data.history.slice(0, 10);
   const remainingCount = Math.max(0, data.history.length - 10);
@@ -333,7 +367,7 @@ export function StockAnalysisView({ stock }: StockAnalysisViewProps) {
 
                         {/* Analyst */}
                         <td className="py-3 px-4 text-zinc-400 whitespace-nowrap text-xs">
-                          {row.analyst}
+                          {row.analyst || "—"}
                         </td>
 
                         {/* Rating */}

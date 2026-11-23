@@ -366,12 +366,8 @@ export default function StockDetailPage({
                 })}
               </div>
 
-              {/* Active Tab View */}
-              {activeTab === "Analysis" ? (
-                <StockAnalysisView stock={stock} onSwitchTab={setActiveTab} />
-              ) : activeTab === "Historical Data" ? (
-                <HistoricalDataView stock={stock} onSwitchTab={setActiveTab} />
-              ) : (
+              {/* Tab Views - Keep InteractiveStockChart mounted to preserve comparison & chart settings */}
+              <div className={activeTab === "Overview" ? "block" : "hidden"}>
                 <TwoColumnLayout
                   main={
                     <div className="flex flex-col gap-[var(--space-4)]">
@@ -397,6 +393,14 @@ export default function StockDetailPage({
                   }
                   sidebar={<CompanyProfileWidget stock={stock} onSwitchTab={setActiveTab} />}
                 />
+              </div>
+
+              {activeTab === "Analysis" && (
+                <StockAnalysisView stock={stock} onSwitchTab={setActiveTab} />
+              )}
+
+              {activeTab === "Historical Data" && (
+                <HistoricalDataView stock={stock} onSwitchTab={setActiveTab} />
               )}
             </div>
           )}

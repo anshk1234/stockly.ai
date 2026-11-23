@@ -45,7 +45,8 @@ export function AnalystConsensusCard({ stock, onSeeAll }: AnalystConsensusCardPr
   const neutral = consensus?.neutralCount ?? 0;
   const bullish = consensus?.bullishCount ?? 0;
   const totalOpinions = bearish + neutral + bullish;
-  const displayTotalAnalysts = consensus?.totalAnalysts || totalOpinions || 25;
+  const hasConsensusCounts = totalOpinions > 0 || (consensus?.totalAnalysts != null && consensus.totalAnalysts > 0);
+  const displayTotalAnalysts = consensus?.totalAnalysts || totalOpinions;
 
   // Segmented Bar Calculation (normalize to 25 ticks or match exact count up to 30)
   const TICK_COUNT = totalOpinions > 0 && totalOpinions <= 30 ? totalOpinions : 25;
@@ -59,16 +60,20 @@ export function AnalystConsensusCard({ stock, onSeeAll }: AnalystConsensusCardPr
       greyTicks = neutral;
       greenTicks = bullish;
     } else {
-      redTicks = Math.round((bearish / totalOpinions) * TICK_COUNT);
-      greenTicks = Math.round((bullish / totalOpinions) * TICK_COUNT);
-      if (bearish > 0 && redTicks === 0) redTicks = 1;
-      if (bullish > 0 && greenTicks === 0) greenTicks = 1;
-      greyTicks = Math.max(0, TICK_COUNT - redTicks - greenTicks);
+      // Joint allocation: reserve 1 tick for each non-empty group, then distribute remainder
+      let remTicks = TICK_COUNT;
+      if (bearish > 0) { redTicks = 1; remTicks--; }
+      if (neutral > 0) { greyTicks = 1; remTicks--; }
+      if (bullish > 0) { greenTicks = 1; remTicks--; }
+
+      const addRed = Math.round((bearish / totalOpinions) * remTicks);
+      const addGreen = Math.round((bullish / totalOpinions) * remTicks);
+      const addGrey = Math.max(0, remTicks - addRed - addGreen);
+
+      redTicks += addRed;
+      greenTicks += addGreen;
+      greyTicks += addGrey;
     }
-  } else {
-    greyTicks = 15;
-    greenTicks = 8;
-    redTicks = 2;
   }
 
   // Price target slider calculations
@@ -108,7 +113,7 @@ export function AnalystConsensusCard({ stock, onSeeAll }: AnalystConsensusCardPr
 
   const minSpan = Math.min(currPct, meanPct);
   const spanWidth = Math.max(2, Math.abs(meanPct - currPct));
-  const isUpside = meanPct >= currPct;
+  const isUpside = rawTargetMean != null && currentPrice != null ? rawTargetMean >= currentPrice : meanPct >= currPct;
 
   return (
     <div className="w-full">
@@ -134,30 +139,35 @@ export function AnalystConsensusCard({ stock, onSeeAll }: AnalystConsensusCardPr
           <span className={`px-2.5 py-0.5 rounded-[6px] text-[12px] font-semibold tracking-wide ${badgeBg}`}>
             {ratingText}
           </span>
-          <span className="text-[12px] text-zinc-400 font-medium">
-            {displayTotalAnalysts} analysts
-          </span>
+          {hasConsensusCounts && (
+            <span className="text-[12px] text-zinc-400 font-medium">
+              {displayTotalAnalysts} analysts
+            </span>
+          )}
         </div>
 
-        {/* Sentiment breakdown labels */}
-        <div className="flex items-center justify-between text-[11.5px] font-medium mt-3.5">
-          <span className="text-rose-400">{bearish} Bearish</span>
-          <span className="text-zinc-400">{neutral} Neutral</span>
-          <span className="text-emerald-400">{bullish} Bullish</span>
-        </div>
+        {/* Sentiment breakdown labels & tick bar (only rendered when consensus counts exist) */}
+        {hasConsensusCounts && (
+          <>
+            <div className="flex items-center justify-between text-[11.5px] font-medium mt-3.5">
+              <span className="text-rose-400">{bearish} Bearish</span>
+              <span className="text-zinc-400">{neutral} Neutral</span>
+              <span className="text-emerald-400">{bullish} Bullish</span>
+            </div>
 
-        {/* Segmented tick bar */}
-        <div className="flex items-center gap-[3px] w-full mt-2">
-          {Array.from({ length: redTicks }).map((_, i) => (
-            <div key={`red-${i}`} className="h-[5px] flex-1 rounded-full bg-rose-500" />
-          ))}
-          {Array.from({ length: greyTicks }).map((_, i) => (
-            <div key={`grey-${i}`} className="h-[5px] flex-1 rounded-full bg-zinc-700/75" />
-          ))}
-          {Array.from({ length: greenTicks }).map((_, i) => (
-            <div key={`green-${i}`} className="h-[5px] flex-1 rounded-full bg-emerald-500" />
-          ))}
-        </div>
+            <div className="flex items-center gap-[3px] w-full mt-2">
+              {Array.from({ length: redTicks }).map((_, i) => (
+                <div key={`red-${i}`} className="h-[5px] flex-1 rounded-full bg-rose-500" />
+              ))}
+              {Array.from({ length: greyTicks }).map((_, i) => (
+                <div key={`grey-${i}`} className="h-[5px] flex-1 rounded-full bg-zinc-700/75" />
+              ))}
+              {Array.from({ length: greenTicks }).map((_, i) => (
+                <div key={`green-${i}`} className="h-[5px] flex-1 rounded-full bg-emerald-500" />
+              ))}
+            </div>
+          </>
+        )}
 
         {/* Price Target Breakdown */}
         {hasTargets && sortedItems.length === 4 && (
