@@ -128,19 +128,26 @@ export default function StockDetailPage({
           `/api/stock/${encodeURIComponent(symbol)}/chart?range=${range}`
         );
         const data = await res.json();
-        if (isCurrent && data.candles) {
-          chartCacheRef.current[range] = {
-            candles: data.candles,
-            previousClose: data.previousClose,
-            timestamp: Date.now(),
-          };
-          setCandles(data.candles);
-          if (data.previousClose) {
-            setPreviousClose(data.previousClose);
+        if (isCurrent) {
+          if (Array.isArray(data.candles) && data.candles.length > 0) {
+            chartCacheRef.current[range] = {
+              candles: data.candles,
+              previousClose: data.previousClose,
+              timestamp: Date.now(),
+            };
+            setCandles(data.candles);
+            if (data.previousClose) {
+              setPreviousClose(data.previousClose);
+            }
+          } else {
+            setCandles([]);
           }
         }
       } catch (err) {
         console.error("Error fetching chart data:", err);
+        if (isCurrent) {
+          setCandles([]);
+        }
       } finally {
         if (isCurrent) setIsLoadingChart(false);
       }

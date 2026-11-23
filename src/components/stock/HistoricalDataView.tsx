@@ -57,9 +57,7 @@ export function HistoricalDataView({ stock, onSwitchTab }: HistoricalDataViewPro
 
   const isCrypto =
     stock.assetClass === "CRYPTOCURRENCY" ||
-    stock.symbol.endsWith("-USD") ||
-    stock.symbol.startsWith("BTC") ||
-    stock.symbol.startsWith("ETH");
+    stock.symbol.endsWith("-USD");
 
   const isIndia = stock.currency === "INR" || stock.symbol.endsWith(".NS") || stock.symbol.startsWith("^NSE");
   const targetTz = isCrypto ? "UTC" : isIndia ? "Asia/Kolkata" : "America/New_York";
@@ -182,8 +180,6 @@ export function HistoricalDataView({ stock, onSwitchTab }: HistoricalDataViewPro
           return true;
         }
       });
-      // Fallback if filter leaves empty (e.g. holiday or early close)
-      if (filtered.length === 0) filtered = [...candles];
     }
 
     // Resample intraday intervals (5m, 15m, 30m)
