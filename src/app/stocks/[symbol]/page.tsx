@@ -14,6 +14,7 @@ import { InteractiveStockChart } from "@/components/stock/InteractiveStockChart"
 import { KeyStatsGrid } from "@/components/stock/KeyStatsGrid";
 import { CompanyProfileWidget } from "@/components/stock/CompanyProfileWidget";
 import { NotablePriceMovements } from "@/components/stock/NotablePriceMovements";
+import { StockAnalysisView } from "@/components/stock/StockAnalysisView";
 import { PageContainer, TwoColumnLayout, Card } from "@/components/ui/layout";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { DetailedStockQuote, CandlePoint, TimeRange } from "@/lib/types";
@@ -364,32 +365,36 @@ export default function StockDetailPage({
                 })}
               </div>
 
-              {/* TwoColumnLayout for Stock Detail View */}
-              <TwoColumnLayout
-                main={
-                  <div className="flex flex-col gap-[var(--space-4)]">
-                    <InteractiveStockChart
-                      symbol={stock.symbol}
-                      name={stock.name}
-                      exchange={stock.exchange}
-                      currency={stock.currency}
-                      initialPrice={stock.price}
-                      initialChange={stock.change}
-                      initialChangePercent={stock.changePercent}
-                      previousClose={previousClose || stock.previousClose}
-                      candles={candles}
-                      currentRange={currentRange}
-                      onRangeChange={handleRangeChange}
-                      isLoading={isLoadingChart}
-                      footer={<KeyStatsGrid stock={stock} attached />}
-                    />
+              {/* Active Tab View */}
+              {activeTab === "Analysis" ? (
+                <StockAnalysisView stock={stock} onSwitchTab={setActiveTab} />
+              ) : (
+                <TwoColumnLayout
+                  main={
+                    <div className="flex flex-col gap-[var(--space-4)]">
+                      <InteractiveStockChart
+                        symbol={stock.symbol}
+                        name={stock.name}
+                        exchange={stock.exchange}
+                        currency={stock.currency}
+                        initialPrice={stock.price}
+                        initialChange={stock.change}
+                        initialChangePercent={stock.changePercent}
+                        previousClose={previousClose || stock.previousClose}
+                        candles={candles}
+                        currentRange={currentRange}
+                        onRangeChange={handleRangeChange}
+                        isLoading={isLoadingChart}
+                        footer={<KeyStatsGrid stock={stock} attached />}
+                      />
 
-                    {/* Notable Price Movement Timeline */}
-                    <NotablePriceMovements symbol={stock.symbol} />
-                  </div>
-                }
-                sidebar={<CompanyProfileWidget stock={stock} />}
-              />
+                      {/* Notable Price Movement Timeline */}
+                      <NotablePriceMovements symbol={stock.symbol} />
+                    </div>
+                  }
+                  sidebar={<CompanyProfileWidget stock={stock} onSwitchTab={setActiveTab} />}
+                />
+              )}
             </div>
           )}
         </PageContainer>

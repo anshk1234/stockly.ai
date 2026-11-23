@@ -58,6 +58,7 @@ export interface DetailedStockQuote {
   summary?: string;
   website?: string;
   analystRating?: string;
+  analystConsensus?: AnalystConsensusData;
 
   // Crypto specific
   circulatingSupply?: number;
@@ -70,6 +71,68 @@ export interface DetailedStockQuote {
   // Index specific
   indexType?: string;
   constituentsCount?: number;
+}
+
+export interface AnalystConsensusData {
+  recommendationKey?: string;
+  recommendationRating: string;
+  totalAnalysts: number;
+  bearishCount: number;
+  neutralCount: number;
+  bullishCount: number;
+  targetLow?: number;
+  targetHigh?: number;
+  targetMean?: number;
+  targetMedian?: number;
+  currentPrice?: number;
+  currency?: string;
+}
+
+export interface AnalystRecommendationRow {
+  id: string;
+  firm: string;
+  analyst: string;
+  toGrade: string;
+  fromGrade?: string;
+  action?: string;
+  priceTargetAction?: string;
+  currentPriceTarget?: number;
+  priorPriceTarget?: number;
+  upside?: number;
+  date: string;
+}
+
+export interface StockAnalysisData {
+  symbol: string;
+  name: string;
+  currency: string;
+  currentPrice: number;
+  consensus: {
+    recommendationKey: string;
+    recommendationRating: string;
+    totalAnalysts: number;
+    bullishCount: number;
+    neutralCount: number;
+    bearishCount: number;
+    bullishPct: number;
+    neutralPct: number;
+    bearishPct: number;
+  };
+  targets: {
+    low?: number;
+    high?: number;
+    mean?: number;
+    median?: number;
+    currentPrice?: number;
+    currency?: string;
+  };
+  history: AnalystRecommendationRow[];
+  synthesis: {
+    overview: string;
+    rangeAnalysis: string;
+    recentChanges: string;
+    sentimentContext: string;
+  };
 }
 
 export interface CandlePoint {
