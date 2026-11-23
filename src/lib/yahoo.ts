@@ -515,7 +515,17 @@ export async function getStockChart(
   symbol: string,
   range: TimeRange = "1D"
 ): Promise<{ candles: CandlePoint[]; previousClose: number }> {
-  const ttl = range === "1D" ? 30 : range === "5D" ? 60 : range === "1M" ? 300 : 900;
+  // Ultra-protective caching: 24h for multi-year, 12h for multi-month, 10m for 5D, 60s for 1D
+  const ttl =
+    range === "1D"
+      ? 60
+      : range === "5D"
+      ? 600
+      : range === "1M"
+      ? 14400
+      : range === "6M" || range === "YTD"
+      ? 43200
+      : 86400; // 24 hours for 1Y, 5Y, MAX
 
   return serverCache.getOrSet(`chart-${symbol}-${range}`, ttl, async () => {
     try {

@@ -15,6 +15,7 @@ import { KeyStatsGrid } from "@/components/stock/KeyStatsGrid";
 import { CompanyProfileWidget } from "@/components/stock/CompanyProfileWidget";
 import { NotablePriceMovements } from "@/components/stock/NotablePriceMovements";
 import { StockAnalysisView } from "@/components/stock/StockAnalysisView";
+import { HistoricalDataView } from "@/components/stock/HistoricalDataView";
 import { PageContainer, TwoColumnLayout, Card } from "@/components/ui/layout";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { DetailedStockQuote, CandlePoint, TimeRange } from "@/lib/types";
@@ -368,6 +369,8 @@ export default function StockDetailPage({
               {/* Active Tab View */}
               {activeTab === "Analysis" ? (
                 <StockAnalysisView stock={stock} onSwitchTab={setActiveTab} />
+              ) : activeTab === "Historical Data" ? (
+                <HistoricalDataView stock={stock} onSwitchTab={setActiveTab} />
               ) : (
                 <TwoColumnLayout
                   main={
