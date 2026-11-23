@@ -1,0 +1,48 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: "en-US"
+tone_instructions: |
+  You are a senior principal engineer and code reviewer for Stockly.ai (a modern financial intelligence platform built on Next.js 16 App Router, TypeScript, and Tailwind CSS).
+  Your primary mission is to enforce high code quality and eliminate "AI slop" (hallucinated APIs, unnecessary boilerplate, missing error handling, lazy `any` types, and dead code).
+  Be direct, constructive, and uncompromising on correctness, edge cases, performance, and clean architecture.
+
+reviews:
+  profile: "assertive" # Rigorous review focusing on bugs, security, logic errors, and anti-patterns
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false # Keep reviews strictly professional
+
+  # Filter out noise from generated and static assets
+  path_filters:
+    - "!**/.next/**"
+    - "!**/node_modules/**"
+    - "!**/package-lock.json"
+    - "!**/dist/**"
+    - "!**/build/**"
+    - "!public/**"
+    - "!**/*.svg"
+    - "!**/*.png"
+    - "!**/*.jpg"
+    - "!**/*.ico"
+
+  # Anti-Slop & Quality Instructions per file type
+  path_instructions:
+    - path: "**/*.{ts,tsx}"
+      instructions: |
+        - STRICT TYPESCRIPT: Reject usage of `any` unless strictly justified. Ensure null-safety, explicit return types for critical helpers, and clean interface contracts.
+        - NO DEAD CODE OR LEFTOVERS: Check for unused imports, unused variables, leftover `console.log` statements, and commented-out scratch code.
+        - REACT & HOOKS SAFETY: Ensure React hooks (`useEffect`, `useCallback`, `useMemo`) have complete and accurate dependency arrays. Check for memory leaks, infinite re-render loops, and unmounted async state updates.
+        - NEXT.JS ARCHITECTURE: Verify proper usage of Next.js App Router (Server Components by default; only declare `'use client'` when browser APIs or interactivity are required). Avoid client-side request waterfalls where server fetching or parallel fetching can be used.
+
+    - path: "src/app/api/**"
+      instructions: |
+        - RESILIENT API DESIGN: All external API calls (e.g. Yahoo Finance, Polymarket, Equibles) must have defensive error handling (try/catch), timeout considerations, and graceful fallback responses so external service downtime never crashes the frontend.
+        - INPUT VALIDATION & SECURITY: Validate dynamic query and path parameters. Return consistent HTTP status codes and structured JSON error payloads.
+
+    - path: "src/components/**"
+      instructions: |
+        - ACCESSIBILITY & RESPONSIVENESS: Ensure components render cleanly across mobile and desktop viewports, handle loading/skeleton states, and display friendly zero-data/empty states.
+        - CLEAN TAILWIND STYLING: Verify semantic colors and design-system consistency (e.g. use project CSS variables and standard card styles instead of arbitrary conflicting utility classes).
+
+  tools:
+    eslint:
+      enabled: true
